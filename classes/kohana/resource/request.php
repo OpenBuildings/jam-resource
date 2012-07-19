@@ -22,6 +22,11 @@ class Kohana_Resource_Request extends Kohana_Request {
 	{
 		parent::__construct($uri, $cache, $injected_routes);
 
+		if (Kohana::$config->load('jam-resource.rest_overloading') AND ($method = $this->query('method')) AND ($this->_method !== 'GET' OR ! in_array($this->_method, array('PUT', 'POST', 'DELETE'))))
+		{
+			$this->method($method);
+		}
+
 		if ( ! in_array($this->method(), Request::$allowed_methods))
 			throw new HTTP_Exception_405("Method :method is not allowed", array(
 					':method' => $request->method(),

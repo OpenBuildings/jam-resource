@@ -409,7 +409,7 @@ class Kohana_Resource {
 	 */
 	public function object()
 	{
-		return Resource::driver()->object($this);
+		return Resource_Jam::object($this);
 	}
 
 	/**
