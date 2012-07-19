@@ -57,7 +57,8 @@
 		}
 		else
 		{
-			return $child_query->key($resource->param('id'))->find_insist();
+			// var_dump($resource->param('id'));die;
+			return $child_query->key((int) $resource->param('id'))->find_insist();
 		}
 	}
 
