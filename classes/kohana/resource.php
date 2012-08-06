@@ -342,28 +342,7 @@ class Kohana_Resource {
 			$this->_actions = Resource::$actions_map;
 		}
 
-		if ($with = Arr::get($options, 'with'))
-		{
-			foreach ( (array) $with as $type => $actions)
-			{
-				if ( ! $actions)
-					continue;
-
-				if (is_numeric($type))
-				{
-					$type = 'member';
-				}
-
-				if (is_string($actions))
-				{
-					$this->_actions[$type][$actions] = 'get';
-				}
-				elseif (is_array($actions))
-				{
-					$this->_actions[$type][Arr::get($actions, 0)] = Arr::get($actions, 1);
-				}
-			}
-		}
+		$this->_add_actions( (array) Arr::get($options, 'with'));
 
 		if ($parent)
 		{
@@ -546,6 +525,38 @@ class Kohana_Resource {
 	public function routes()
 	{
 		return $this->_routes;
+	}
+
+	public function _add_actions($with)
+	{
+		if ( ! $with)
+			return $this;
+
+		foreach ($with as $type => $actions)
+		{
+			if ( ! $actions)
+				continue;
+
+			if (is_numeric($type))
+			{
+				$type = 'member';
+			}
+			elseif (is_string($actions))
+			{
+				$this->_actions['member'][$type] = $actions;
+			}
+
+			if (is_string($actions))
+			{
+				$this->_actions['member'][$actions] = 'get';
+			}
+			elseif (is_array($actions))
+			{
+				$this->_actions[$type] += $actions;
+			}
+		}
+
+		return $this;
 	}
 
 	/**
