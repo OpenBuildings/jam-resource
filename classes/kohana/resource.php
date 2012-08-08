@@ -527,7 +527,7 @@ class Kohana_Resource {
 		return $this->_routes;
 	}
 
-	public function _add_actions($with, $actual_type = NULL)
+	public function _add_actions($with)
 	{
 		if ( ! $with)
 			return $this;
@@ -537,29 +537,22 @@ class Kohana_Resource {
 			if ( ! $actions)
 				continue;
 
-			if ( ! $actual_type AND is_numeric($type))
+			if (is_numeric($type))
 			{
-				$actual_type = 'member';
+				$type = 'member';
 			}
-			elseif ( ! $actual_type) 
+			elseif (is_string($actions))
 			{
-				$actual_type = $type; 
+				$this->_actions['member'][$type] = $actions;
 			}
 
 			if (is_string($actions))
 			{
-				$this->_actions[$actual_type][$actions] = 'get';
+				$this->_actions['member'][$actions] = 'get';
 			}
 			elseif (is_array($actions))
 			{
-				if (is_array(Arr::get($actions, 0)))
-				{
-					$this->_add_actions($actions, $actual_type);
-				}
-				else
-				{
-					$this->_actions[$actual_type][Arr::get($actions, 0)] = Arr::get($actions, 1);
-				}
+				$this->_actions[$type] += $actions;
 			}
 		}
 
