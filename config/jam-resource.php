@@ -3,7 +3,7 @@
 return array(
 	'key' => 'id',
 	'type' => 'multiple', // multiple or singular
-	'format' => FALSE, // set to FALSE if you don't want different formats included in the routes
+	'format' => FALSE, // default format; set to FALSE if you don't want different formats included in the routes
 	'formats' => array(
 		'html',
 		'json',
