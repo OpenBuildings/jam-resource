@@ -552,7 +552,19 @@ class Kohana_Resource {
 			}
 			elseif (is_array($actions))
 			{
-				$this->_actions[$type] += $actions;
+				$actions_final = array();
+				
+				foreach ($actions as $action_name => $action_method)
+				{
+					if (is_numeric($action_name))
+					{
+						$action_name = $action_method;
+						$action_method = 'get';
+					}
+
+					$actions_final[$action_name] = $action_method;
+				}
+				$this->_actions[$type] += $actions_final;
 			}
 		}
 
