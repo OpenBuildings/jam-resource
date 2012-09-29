@@ -10,7 +10,7 @@
  */
 class Kohana_Resource_Request extends Kohana_Request {
 
-	public static $allowed_methods = array('GET', 'POST', 'PUT', 'DELETE');
+	public static $allowed_methods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'TRACE', 'OPTIONS', 'CONNECT');
 
 	/**
 	 * The name of the resource for the request
