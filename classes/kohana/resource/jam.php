@@ -5,8 +5,8 @@
  *
  * @package    OpenBuildings/jam-resource
  * @author     Haralan Dobrev
- * @copyright  (c) 2012 OpenBuildings Inc.
- * @license    http://creativecommons.org/licenses/by-sa/3.0/legalcode
+ * @copyright  (c) 2012 Despark Ltd.
+ * @license    http://www.opensource.org/licenses/isc-license.txt
  */
  class Kohana_Resource_Jam {
 
