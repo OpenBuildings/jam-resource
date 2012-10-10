@@ -4,9 +4,9 @@
  * Resource_Jam class
  *
  * @package    OpenBuildings/jam-resource
- * @author     Haralan Dobrev
- * @copyright  (c) 2012 OpenBuildings Inc.
- * @license    http://creativecommons.org/licenses/by-sa/3.0/legalcode
+ * @author     Haralan Dobrev <hdobrev@despark.com>
+ * @copyright  (c) 2012 Despark Ltd.
+ * @license    http://www.opensource.org/licenses/isc-license.txt
  */
  class Kohana_Resource_Jam {
 
@@ -57,7 +57,6 @@
 		}
 		else
 		{
-			// var_dump($resource->param('id'));die;
 			return $child_query->key((int) $resource->param('id'))->find_insist();
 		}
 	}
