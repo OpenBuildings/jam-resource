@@ -3,7 +3,7 @@ Resource Jam module for Kohana 3.2
 
 Resources act as a bridge between routes, models and requests.
 
-The `jam-resource` module works with the mighty [Jam ORM for Kohana 3.2](openbuildings/jam)
+The `jam-resource` module works with the mighty [Jam ORM for Kohana 3.2](//github.com/openbuildings/jam)
 
 Main Features
 -------------
