@@ -180,3 +180,9 @@ Formats
 -------
 
 **TODO: explain formats here**
+
+## LICENSE
+
+&copy; Copyright Despark Ltd. 2012
+
+[License](//github.com/openbuildings/jam-resource/blob/master/LICENSE)
