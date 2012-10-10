@@ -6,7 +6,7 @@
  * Common exception class for all resource exceptions
  *
  * @package    OpenBuildings/jam-resource
- * @author     Haralan Dobrev
+ * @author     Haralan Dobrev <hdobrev@despark.com>
  * @copyright  (c) 2012 Despark Ltd.
  * @license    http://www.opensource.org/licenses/isc-license.txt
  */
