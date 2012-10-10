@@ -36,7 +36,7 @@ Resource::set('users');
  * GET  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  **/users/1** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - action show    - retrieve info for a single user
  * GET  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  **/users/edit** &nbsp; - action edit    - form to edit a user
  * PUT  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  **/users/1** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;	 - action update  - update an existing user
- * DELETE **/users/1** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - action destroy - destroy a user resource
+ * DELETE &nbsp;**/users/1** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - action destroy - destroy a user resource
 
 
 When you visit `/users` the generated routes would open `Controller_Users::action_index()`.
