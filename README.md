@@ -23,7 +23,7 @@ Usage:
 
 This will generate 7 routes
 
-```
+``` php
 <?php 
 // Define the users resource
 Resource::set('users');
@@ -64,7 +64,7 @@ There is no need to check if it is laoded. If there is no user model with the sp
 
 You could also generate the resourceful URLs for a specific model.
 
-```
+``` php
 <?php
 $user = Jam::factory('user', 1);
 
@@ -93,7 +93,7 @@ as a second argument to `Resource::set()`.
 
 **Here are the default options**:
 
-```
+``` php
 <?php
 Resource::set('users', array(
 
