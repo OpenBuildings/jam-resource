@@ -314,8 +314,7 @@ class Kohana_Resource {
 
 		$this->_path = Arr::get($options, 'path', $name);
 		$path_base = basename($this->_path);
-		$this->_controller = Arr::get($options, 'controller', $this->is_singular() ? Inflector::plural($path_base) : $path_base);
-
+		$this->_controller = Arr::get($options, 'controller', $this->is_singular() ? $path_base : Inflector::singular($path_base, 2));
 
 		if ($only = Arr::get($options, 'only'))
 		{
@@ -323,7 +322,13 @@ class Kohana_Resource {
 			{
 				if ($actions_group)
 				{
-					$this->_actions[$actions_type] = array_filter(Arr::extract($actions_group, (array) $only));
+					if ($actions_type != 'member' AND $this->is_singular())
+					{
+						$actions_type = 'member';
+					}
+					$this->_actions = Arr::merge($this->_actions, array(
+						$actions_type => array_filter(Arr::extract($actions_group, (array) $only))
+					));
 				}
 			}
 		}
