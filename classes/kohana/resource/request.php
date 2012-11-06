@@ -40,13 +40,18 @@ class Kohana_Resource_Request extends Kohana_Request {
 		$routes = (empty($routes)) ? Route::all() : $routes;
 		$params = NULL;
 
+		if (Kohana::$is_cli)
+		{
+			$method = Arr::get(CLI::options('method'), 'method', Request::GET);
+		}
+		else
+		{
+			$method = Arr::get($_SERVER, 'REQUEST_METHOD', Request::GET);
+		}
+
 		foreach ($routes as $name => $route)
 		{
-			$actual_method = Resource_Request::_method(
-				Request::$current ?
-				 Request::$current->method() :
-				 Arr::get($_SERVER, 'REQUEST_METHOD', 'GET')
-			);
+			$actual_method = Resource_Request::_method($method);
 
 			// We found something suitable
 			if ($params = $route->matches($uri, $actual_method))
@@ -64,16 +69,28 @@ class Kohana_Resource_Request extends Kohana_Request {
 		if ( ! Kohana::$config->load('jam-resource.rest_overloading'))
 			return $actual_method;
 
-		$overloaded_method = strtoupper(Arr::get(
-			Request::initial() ? Request::initial()->query() : $_GET,
-			'method'
-		));
+		$query = $_GET;
 
-		if ( ! $overloaded_method)
-		 	return $actual_method;
-		 
-		if ($actual_method !== 'GET'
-		 OR ! in_array($overloaded_method, array('PUT', 'POST', 'DELETE')))
+		if (Kohana::$is_cli)
+		{
+			parse_str(Arr::get(CLI::options('get'), 'get', ''), $query);
+		}
+		elseif (Request::$initial)
+		{
+			$query = Request::$initial->query();
+		}
+
+		if ( ! isset($query['method']))
+			return $actual_method;
+
+		$overloaded_method = strtoupper($query['method']);
+
+		if ($actual_method !== Request::GET
+		 OR ! in_array($overloaded_method, array(
+		 	Request::POST,
+		 	Request::PUT,
+		 	Request::DELETE
+		 )))
 			return $overloaded_method;
 
 		return $actual_method;
