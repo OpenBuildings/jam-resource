@@ -7,18 +7,9 @@
  */
 class Jam_Resource_RequestTest extends Unittest_Resource_Testcase {
 
-	public function test_allowed_methods()
+	public function test_method()
 	{
-		$this->assertSame(array(
-			'GET',
-			'POST',
-			'PUT',
-			'DELETE',
-			'HEAD',
-			'TRACE',
-			'OPTIONS',
-			'CONNECT'
-		), Request::$allowed_methods);
+		$this->markTestIncomplete();
 	}
 
 }

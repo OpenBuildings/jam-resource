@@ -10,54 +10,21 @@
  */
 class Kohana_Resource_Request extends Kohana_Request {
 
-	public static $allowed_methods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'TRACE', 'OPTIONS', 'CONNECT');
-
-	/**
-	 * The name of the resource for the request
-	 * @var string
-	 */
-	public $resource = NULL;
-
-	public static function factory($uri = TRUE, HTTP_Cache $cache = NULL, $injected_routes = array())
+	public static function factory(
+		$uri = TRUE,
+		HTTP_Cache $cache = NULL,
+		$injected_routes = array())
 	{
 		$request = parent::factory($uri, $cache, $injected_routes);
 
-		$request->method(Resource_Request::_method($request->method()));
-
-		if ( ! in_array($request->method(), Request::$allowed_methods))
-			throw new HTTP_Exception_405("Method :method is not allowed", array(
-					':method' => $request->method(),
-				), $request->method());
-
-		if ( ! $request->is_external() AND $request->route() AND $request->route()->resource_name())
+		if ( ! $request->is_external()
+		 AND $request->route()
+		 AND $request->route()->resource_name())
 		{
-			$request->resource_name($request->route()->resource_name());
+			$request->_resource_name = $request->route()->resource_name();
 		}
 
 		return $request;
-	}
-
-	public function resource_name($resource_name = NULL)
-	{
-		if ($resource_name)
-		{
-			$this->_resource_name = $resource_name;
-			return $this;
-		}
-
-		return $this->_resource_name;
-	}
-
-	/**
-	 * The resource associated with the request
-	 * @return Resource
-	 */
-	public function resource()
-	{
-		if ( ! $this->_resource_name)
-			return NULL;
-
-		return Resource::get($this->_resource_name)->param($this->param());
 	}
 
 	/**
@@ -75,7 +42,11 @@ class Kohana_Resource_Request extends Kohana_Request {
 
 		foreach ($routes as $name => $route)
 		{
-			$actual_method = Resource_Request::_method(Request::$current ? Request::$current->method() : (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET'));
+			$actual_method = Resource_Request::_method(
+				Request::$current ?
+				 Request::$current->method() :
+				 Arr::get($_SERVER, 'REQUEST_METHOD', 'GET')
+			);
 
 			// We found something suitable
 			if ($params = $route->matches($uri, $actual_method))
@@ -90,12 +61,52 @@ class Kohana_Resource_Request extends Kohana_Request {
 
 	protected static function _method($actual_method)
 	{
-		if (Kohana::$config->load('jam-resource.rest_overloading') AND ($overloaded_method = Arr::get($_GET, 'method')) AND ($actual_method !== 'GET' OR ! in_array($overloaded_method, array('PUT', 'POST', 'DELETE'))))
-		{
-			$actual_method = strtoupper($overloaded_method);
-		}
+		if ( ! Kohana::$config->load('jam-resource.rest_overloading'))
+			return $actual_method;
+
+		$overloaded_method = strtoupper(Arr::get(
+			Request::initial() ? Request::initial()->query() : $_GET,
+			'method'
+		));
+
+		if ( ! $overloaded_method)
+		 	return $actual_method;
+		 
+		if ($actual_method !== 'GET'
+		 OR ! in_array($overloaded_method, array('PUT', 'POST', 'DELETE')))
+			return $overloaded_method;
 
 		return $actual_method;
 	}
 
+	/**
+	 * The name of the resource for the request
+	 * @var string
+	 */
+	protected $_resource_name = NULL;
+
+	public function method($method = NULL)
+	{
+		if ( ! $method)
+			return parent::method();
+
+		return parent::method(Resource_Request::_method($method));
+	}
+	
+	/**
+	 * The resource associated with the request
+	 * @return Resource
+	 */
+	public function resource()
+	{
+		if ( ! $this->_resource_name)
+			return NULL;
+
+		return Resource::get($this->_resource_name)->param($this->param());
+	}
+
+	public function resource_name()
+	{
+		return $this->_resource_name;
+	}
 }
