@@ -34,13 +34,25 @@ class Kohana_Resource_Request extends Kohana_Request {
 	 * @param   array   $routes  Route
 	 * @return  array
 	 */
-	public static function process_uri($uri, $routes = NULL)
+	public static function process_uri($uri, $routes = NULL, $method = NULL)
 	{
 		// Load routes
 		$routes = (empty($routes)) ? Route::all() : $routes;
 		$params = NULL;
 
-		if (Kohana::$is_cli)
+		if ($method !== NULL)
+		{
+			
+		}
+		elseif (Request::$current)
+		{
+			$method = Request::$current->method();
+		}
+		elseif (Request::$initial) 
+		{
+			$method = Request::$initial->method();
+		}
+		elseif (Kohana::$is_cli)
 		{
 			$method = Arr::get(CLI::options('method'), 'method', Request::GET);
 		}
@@ -49,10 +61,10 @@ class Kohana_Resource_Request extends Kohana_Request {
 			$method = Arr::get($_SERVER, 'REQUEST_METHOD', Request::GET);
 		}
 
+		$actual_method = Resource_Request::_method($method);
+
 		foreach ($routes as $name => $route)
 		{
-			$actual_method = Resource_Request::_method($method);
-
 			// We found something suitable
 			if ($params = $route->matches($uri, $actual_method))
 				return array(
