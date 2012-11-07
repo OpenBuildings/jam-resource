@@ -15,16 +15,8 @@ class Kohana_Resource_Request extends Kohana_Request {
 		HTTP_Cache $cache = NULL,
 		$injected_routes = array())
 	{
-		$request = parent::factory($uri, $cache, $injected_routes);
-
-		if ( ! $request->is_external()
-		 AND $request->route()
-		 AND $request->route()->resource_name())
-		{
-			$request->_resource_name = $request->route()->resource_name();
-		}
-
-		return $request;
+		return parent::factory($uri, $cache, $injected_routes)
+			->_set_resource_name();
 	}
 
 	/**
@@ -137,5 +129,17 @@ class Kohana_Resource_Request extends Kohana_Request {
 	public function resource_name()
 	{
 		return $this->_resource_name;
+	}
+
+	protected function _set_resource_name()
+	{
+		if ( ! $this->is_external()
+		 AND $this->route()
+		 AND $this->route()->resource_name())
+		{
+			$this->_resource_name = $this->route()->resource_name();
+		}
+
+		return $this;
 	}
 }
