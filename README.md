@@ -1,5 +1,5 @@
 Resource Jam module for Kohana 3.2
-==============================
+==================================
 
 Resources act as a bridge between routes, models and requests.
 
@@ -16,12 +16,10 @@ Main Features
  * Restrict routes (and actions) to certain HTTP methods
  * Easily build a RESTful API
 
-Usage:
-------
+Defining resources
+------------------
 
-**Defining resources**
-
-This will generate 7 routes
+The simplest way to define a resource:
 
 ``` php
 <?php 
@@ -30,14 +28,153 @@ Resource::set('users');
 ?>
 ```
 
- * GET  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **/users** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - action index   - retrieve a list of users
- * GET  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **/users/new** &nbsp; - action new     - form to create a new user
- * POST &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **/users** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - action create  - create a new user
- * GET  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  **/users/1** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - action show    - retrieve info for a single user
- * GET  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  **/users/edit** &nbsp; - action edit    - form to edit a user
- * PUT  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  **/users/1** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;	 - action update  - update an existing user
- * DELETE &nbsp;**/users/1** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - action destroy - destroy a user resource
+This would generate seven routes which would serve these purposes:
 
+<table>
+	<tr>
+		<th>HTTP Verb</th>
+		<th>path</th>
+		<th>action</th>
+		<th>used for</th>
+	</tr>
+	<tr>
+		<td>GET</td>
+		<td>/users</td>
+		<td>index</td>
+		<td>display a list of all users</td>
+	</tr>
+	<tr>
+		<td>GET</td>
+		<td>/users/new</td>
+		<td>new</td>
+		<td>return an HTML form for creating a new user</td>
+	</tr>
+	<tr>
+		<td>POST</td>
+		<td>/users</td>
+		<td>create</td>
+		<td>create a new user</td>
+	</tr>
+	<tr>
+		<td>GET</td>
+		<td>/users/1</td>
+		<td>show</td>
+		<td>display a specific user</td>
+	</tr>
+		<td>GET</td>
+		<td>/users/1/edit</td>
+		<td>edit</td>
+		<td>return an HTML form for editing a user</td>
+	<tr>
+		<td>PUT</td>
+		<td>/users/1</td>
+		<td>update</td>
+		<td>update a specific user</td>
+	</tr>
+	<tr>
+		<td>DELETE</td>
+		<td>/users/1</td>
+		<td>destroy</td>
+		<td>delete a specific user</td>
+	</tr>
+</table>
+
+As you can see every action has a very specific purpose.
+Something you might not be used to in the PHP world.
+Everything is derived from [Ruby on Rails routing](http://guides.rubyonrails.org/routing.html).
+
+---
+
+You can easily limit the creation of these default routes or add more:
+
+**Only specific routes**
+
+``` php
+<?php
+
+Resource::set('users', array(
+	'only' => array(
+		'index',
+		'show'
+	)
+));
+```
+
+**Default routes except some**
+
+``` php
+<?php
+
+Resource::set('users', array(
+	'except' => array(
+		'destroy',
+		'edit',
+		'update'
+	)
+));
+```
+
+**Adding additional routes**
+
+``` php
+<?php
+
+Resource::set('users', array(
+	'with' => array(
+		'picture',
+		'collection' => array(
+			'featured'
+		)
+	)
+));
+```
+
+This would make accessible the following URLs (in addition to the default ones):
+
+ * /users/1/picture
+ * /users/featured
+
+Of course you can use these options together to define those routes your application would need.
+
+The routes which a resource would generate are separated in **member** routes and **collection** routes.
+The collection routes do not have a specific id while the member routes are about a specific resource.
+
+---
+
+As said above the resources act as a glue between routes, models and controllers.
+
+The model, the controller and the URI paths are derived from the resource name.
+
+The `users` resource would guess the controller is `Controller_Users` and the model is `Model_User`.
+
+You can easily specify these explicitly:
+
+``` php
+<?php
+
+Resource::set('photos', array(
+	'controller' => 'pictures',
+	'model' => 'image'
+));
+```
+
+This would still create routes to access the photos on `/photos` and `/photos/1`.
+But it would use the actions in `Controller_Pictures` and the image model.
+
+Changing the path string is achieved using the `path` option:
+
+``` php
+<?php 
+
+Resource::('users', array(
+	'path' => 'people'
+));
+```
+
+This would create routes for URIs like: `/people`, `/people/1` etc. while still using the users controller and user model.
+
+Accessing resources in controllers
+----------------------------------
 
 When you visit `/users` the generated routes would open `Controller_Users::action_index()`.
 
@@ -57,16 +194,25 @@ From there you could access the specified user model with:
 
 `$this->request->resource()->object()`
 
-There is no need to check if it is laoded. If there is no user model with the specified id
+There is no need to check if it is loaded. If there is no user model with the specified id
 `Jam_Exception_NotFound` would be thrown.
 
----
 
-You could also generate the resourceful URLs for a specific model.
+Generating URLs
+---------------
+
+You could also generate the resourceful URLs for a specific model or a collection.
+
+Use the 
 
 ``` php
 <?php
+
+// Jam_Model
 $user = Jam::factory('user', 1);
+
+// Jam_Collection
+$users = Jam::query('user');
 
 // /users/1
 Resource::url($user);
@@ -74,97 +220,21 @@ Resource::url($user);
 // /users
 Resource::url('users');
 
+// /users
+Resource::url($users);
+
 // /users/1/edit
-Resource::url('users', array('action' => 'edit'));
+Resource::url($user, array('action' => 'edit'));
 
 // /users
 Resource::url('users', array('action' => 'create'));
 ?>
 ```
 
-### Configuration
+Child resources
+---------------
 
-There is a global configuration in `config/jam-resource.php`.
-
-Some of it could be overriden when defining a resource.
-
-The most important options are the resource-specific ones. They are passed in an array
-as a second argument to `Resource::set()`.
-
-**Here are the default options**:
-
-``` php
-<?php
-Resource::set('users', array(
-
-	'model' => 'user',
-	'controller' => 'users',
-	'path' => 'users'
-	'sluggable' => FALSE,
-	'singular' => FALSE,
-));
-?>
-```
-
- * **model** - the name of the model for the resource; default: the singular form of the resource name
- * **controller** - the name of the controller for the routes; default: the plural form of the resource name
- * **path** - the string used in urls instead of the name; default - the name of the resource
- * **sluggable** - boolean indicating whether this resource uses slugs in the URLs
- * **singular** - boolean indicating whether this is a singular resource; More on singular resource below
-
-**Generate urls from objects**
-
-You are probably used to Route::url where you specify the name of the route and route params to generate a url. This is much easier with resources. You can use Resource::url with objects, strings and more to generate a correct url.
-
-In most cases you will have loaded objects or collection queries which you would want to generate urls to. Here is how:
-
-``` php
-<?php
-// Generate an object url
-Resource::url($image); // /images/5
-
-// Generate a slug url
-Resource::url($user); // /users/some-user-123
-
-// Generate url for child resource
-Resource::url($user, 'images'); // /users/some-user-123/images
-
-// If you have $images collection
-Resource::url($user, $images); // /users/some-user-123/images
-
-// Specify a route param
-Resource::url('images', array('action' => 'new'));
-
-// Object url for child resource
-Resource::url($folder, $document); // /folders/some-folder-1234/docs/my-document-5
-?>
-```
-
-**Get current objects and collections**
-
-In the controllers corresponding to a resource you can easily get the model object, model collection or the parent model object.
-
-``` php
-<?php
-// Get the resource corresponding to the route from the current request
-Resource::current();
-
-// Or
-Request::current()->resource();
-
-// Or if you are in a controller
-$this->request->resource();
-
-// Get the collection query for the current request
-$this->request->resource()->collection();
-
-// Load and get the object for the current request
-$this->request->resource()->object();
-
-// Load and get the parent object for the current request
-$this->request->resource()->parent_object();
-?>
-```
+**TODO: explain child resources - defining, usage and application**
 
 Singular resources
 ------------------
@@ -181,7 +251,8 @@ Formats
 
 **TODO: explain formats here**
 
-## LICENSE
+LICENSE
+=======
 
 &copy; Copyright Despark Ltd. 2012
 
