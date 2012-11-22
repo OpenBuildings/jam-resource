@@ -312,7 +312,7 @@ class Kohana_Resource {
 			$this->_is_sluggable = (bool) Arr::get($options,'sluggable', Kohana::$config->load('jam-resource.sluggable'));
 		}
 
-		$this->_path = Arr::get($options, 'path', $name);
+		$this->_path = Arr::get($options, 'path', $this->is_singular() ? Inflector::singular($name) : $name);
 		$path_base = basename($this->_path);
 		$this->_controller = Arr::get($options, 'controller', $this->is_singular() ? $path_base : Inflector::singular($path_base, 2));
 
@@ -584,10 +584,10 @@ class Kohana_Resource {
 	 */
 	protected function _set_child($child_name, $child_options)
 	{
-		if ( ! isset($child_options['path']))
-		{
-			$child_options['path'] = $this->path().'/'.($this->is_multiple() ? '<parent_id>/' : '').$child_name;
-		}
+		$child_options['path'] = $this->path()
+			.'/'
+			.($this->is_multiple() ? '<parent_id>/' : '')
+			.Arr::get($child_options, 'path', Arr::get($child_options, 'singular') ? Inflector::singular($child_name) : $child_name);
 
 		$child_resource = Resource::set($child_name, $child_options, $this);
 
@@ -674,7 +674,7 @@ class Kohana_Resource {
 
 		if ($format = Kohana::$config->load('jam-resource.format'))
 		{
-			$route_regex['format'] = '('.implode('|', Kohana::$config->load('jam-resource.formats')).')';
+			$route_regex['format'] = '('.implode('|', array_keys(array_filter(Kohana::$config->load('jam-resource.formats')))).')';
 			$route_defaults['format'] = $format;
 			$format_string = '(.<format>)';
 		}
