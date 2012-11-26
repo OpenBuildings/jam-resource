@@ -34,13 +34,13 @@ class Kohana_Resource_Request extends Kohana_Request {
 
 		if ($method !== NULL)
 		{
-			
+
 		}
 		elseif (Request::$current)
 		{
 			$method = Request::$current->method();
 		}
-		elseif (Request::$initial) 
+		elseif (Request::$initial)
 		{
 			$method = Request::$initial->method();
 		}
@@ -113,7 +113,7 @@ class Kohana_Resource_Request extends Kohana_Request {
 
 		return parent::method(Resource_Request::_method($method));
 	}
-	
+
 	/**
 	 * The resource associated with the request
 	 * @return Resource
