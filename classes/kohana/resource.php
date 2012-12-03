@@ -273,6 +273,12 @@ class Kohana_Resource {
 	 */
 	protected $_children = array();
 
+	protected $_format = 'html';
+
+	protected $_formats = array();
+	
+	protected $_is_format_required = FALSE;
+
 	/**
 	 * Route params for the resource.
 	 * Used when selecting collection or an object for the resource.
@@ -315,6 +321,9 @@ class Kohana_Resource {
 		$this->_path = Arr::get($options, 'path', $this->is_singular() ? Inflector::singular($name) : $name);
 		$path_base = basename($this->_path);
 		$this->_controller = Arr::get($options, 'controller', $this->is_singular() ? $path_base : Inflector::singular($path_base, 2));
+		$this->_format = Arr::get($options, 'format', Kohana::$config->load('jam-resource.format'));
+		$this->_formats = Arr::get($options, 'formats', array_keys(array_filter(Kohana::$config->load('jam-resource.formats'))));
+		$this->_is_format_required = Arr::get($options, 'is_format_required', (bool) Kohana::$config->load('jam-resource.is_format_required'));
 
 		if ($only = Arr::get($options, 'only'))
 		{
@@ -365,7 +374,10 @@ class Kohana_Resource {
 				$options['path'],
 				$options['only'],
 				$options['except'],
-				$options['with']
+				$options['with'],
+				$options['format'],
+				$options['formats'],
+				$options['is_format_required']
 			);
 			$this->_child_options = array_filter($options);
 		}
@@ -672,14 +684,13 @@ class Kohana_Resource {
 			$action_string = '/'.$action;
 		}
 
-		if ($format = Kohana::$config->load('jam-resource.format'))
+		if ($this->_format !== FALSE)
 		{
-			$formats = array_keys(array_filter(Kohana::$config->load('jam-resource.formats')));
-			$route_regex['format'] = count($formats) > 1 ? '('.implode('|', $formats).')' : Arr::get($formats, 0, '');
-			$route_defaults['format'] = $format;
+			$route_regex['format'] = count($this->_formats) > 1 ? '('.implode('|', $this->_formats).')' : Arr::get($this->_formats, 0, '');
+			$route_defaults['format'] = $this->_format;
 			$format_string = '.<format>';
 			
-			if (count($formats) > 1)
+			if ( ! $this->_is_format_required)
 			{
 				$format_string = '('.$format_string.')';
 			}

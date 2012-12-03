@@ -12,6 +12,7 @@ return array(
 		'xml' => TRUE,
 		'rss' => TRUE
 	),
+	'is_format_required' => FALSE,
 	'rest_overloading' => FALSE,
 	'positive_integer_regex' => '[1-9][0-9]*',
     'slug_regex' => '(?:[a-z][a-z-0-9]*?-)?[1-9][0-9]*',
