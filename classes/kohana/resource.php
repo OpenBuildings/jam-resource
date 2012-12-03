@@ -674,9 +674,15 @@ class Kohana_Resource {
 
 		if ($format = Kohana::$config->load('jam-resource.format'))
 		{
-			$route_regex['format'] = '('.implode('|', array_keys(array_filter(Kohana::$config->load('jam-resource.formats')))).')';
+			$formats = array_keys(array_filter(Kohana::$config->load('jam-resource.formats')));
+			$route_regex['format'] = count($formats) > 1 ? '('.implode('|', $formats).')' : Arr::get($formats, 0, '');
 			$route_defaults['format'] = $format;
-			$format_string = '(.<format>)';
+			$format_string = '.<format>';
+			
+			if (count($formats) > 1)
+			{
+				$format_string = '('.$format_string.')';
+			}
 		}
 
 		Route::set($route_name, $this->path().$id_string.$action_string.$format_string, $route_regex, array(
