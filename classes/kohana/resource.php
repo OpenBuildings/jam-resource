@@ -342,7 +342,7 @@ class Kohana_Resource {
 				}
 			}
 		}
-		else
+		elseif ( ! array_key_exists('only', $options))
 		{
 			$this->_actions = Resource::$actions_map;
 		}
