@@ -32,6 +32,7 @@
 			{
 				$parent_builder = $parent_builder->find_insist($resource->param('parent_id'));
 			}
+
 			return $parent_builder->builder($resource->field());
 		}
 		else
