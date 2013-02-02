@@ -22,7 +22,7 @@
     "support": {
         "email": "hdobrev@despark.com",
         "issues": "https://github.com/openbuildings/jam-resource/issues",
-        "source": "https://github.com/openbuildings/jam-resource",
+        "source": "https://github.com/openbuildings/jam-resource"
     },
     "keywords": [
         "kohana",
