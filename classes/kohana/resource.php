@@ -37,7 +37,7 @@ class Kohana_Resource {
 
 	/**
 	 * Set routes and nested resources based on the models
-	 * 
+	 *
 	 * @param string|arrau $model   the name of the resource or an array of names
 	 * @param array $options array of options - see the usage description
 	 * @param string $parent the name of the parent route
@@ -92,17 +92,17 @@ class Kohana_Resource {
 	 * Model objects are resolved to strings and route params are set from them - slugs or primary keys.
 	 * Arrays are used as additional route params.
 	 * Booleans are used for protocols. Protocols could be defined with 'protocol' key in arrays too.
-	 * 
+	 *
 	 * Usage:
 	 * 		Resource::url($user, 'images', array('action' => 'more'), TRUE); // /users/some-user-123/images/more
-	 * 		
+	 *
 	 * 	If model objects are given as arguments their name is used in singular form.
 	 * 	If collection objects are given as arguments their name is used in plural form.
-	 * 	
+	 *
 	 * 	The point is to generate a correct route name, then select the route and get the resource associated with the route.
-	 * 
+	 *
 	 * @return string
-	 */	
+	 */
 	public static function url()
 	{
 		$arguments = func_get_args();
@@ -124,9 +124,9 @@ class Kohana_Resource {
 			{
 				$strings[] = Resource::_parse_object($argument, $params);
 			}
-			elseif (is_array($argument)) 
+			elseif (is_array($argument))
 			{
-				$params = Arr::merge($params, $argument);	
+				$params = Arr::merge($params, $argument);
 			}
 			elseif (is_bool($argument) OR is_null($argument))
 			{
@@ -164,7 +164,7 @@ class Kohana_Resource {
 
 	/**
 	 * Parse an object or a collection and returns the name of the model
-	 * 
+	 *
 	 * @static
 	 * @param  mixed $object a model object depending on the drivers; it could be Jam_Collection, Jam_Builder, Jam_Object, ORM or Database_Result
 	 * @param  array $params if the object is loaded it would set id in params to the key of the object
@@ -238,7 +238,7 @@ class Kohana_Resource {
 	 * @var boolean
 	 */
 	protected $_is_singular;
-	
+
 	/**
 	 * Defines if the resource is sluggable
 	 * @var boolean
@@ -276,7 +276,7 @@ class Kohana_Resource {
 	protected $_format = 'html';
 
 	protected $_formats = array();
-	
+
 	protected $_is_format_required = FALSE;
 
 	/**
@@ -312,7 +312,7 @@ class Kohana_Resource {
 		}
 
 		$this->_is_singular = (bool) Arr::get($options, 'singular', Kohana::$config->load('jam-resource.singular'));
-		
+
 		if ( ! $this->is_singular())
 		{
 			$this->_is_sluggable = (bool) Arr::get($options,'sluggable', Kohana::$config->load('jam-resource.sluggable'));
@@ -570,7 +570,7 @@ class Kohana_Resource {
 			elseif (is_array($actions))
 			{
 				$actions_final = array();
-				
+
 				foreach ($actions as $action_name => $action_method)
 				{
 					if (is_numeric($action_name))
@@ -614,7 +614,7 @@ class Kohana_Resource {
 	 */
 	protected function _set_routes()
 	{
-		foreach ($this->_child_options as $child_name => $child_options) 
+		foreach ($this->_child_options as $child_name => $child_options)
 		{
 			$this->_set_child($child_name, $child_options);
 		}
@@ -689,7 +689,7 @@ class Kohana_Resource {
 			$route_regex['format'] = count($this->_formats) > 1 ? '('.implode('|', $this->_formats).')' : Arr::get($this->_formats, 0, '');
 			$route_defaults['format'] = $this->_format;
 			$format_string = '.<format>';
-			
+
 			if ( ! $this->_is_format_required)
 			{
 				$format_string = '('.$format_string.')';

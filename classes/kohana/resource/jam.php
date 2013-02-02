@@ -64,7 +64,7 @@
 
 	/**
 	 * Checks if a model object is using the sluggable behavior
-	 * 
+	 *
 	 * @static
 	 * @param  mixed  $object Jam_Model or ORM
 	 * @return boolean TRUE if the object implements the sluggable behavior; FALSE otherwise

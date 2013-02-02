@@ -34,7 +34,6 @@ class Kohana_Resource_Request extends Kohana_Request {
 
 		if ($method !== NULL)
 		{
-
 		}
 		elseif (Request::$current)
 		{
