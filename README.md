@@ -3,7 +3,7 @@ Resource Jam module for Kohana 3.2
 
 Resources act as a bridge between routes, models and requests.
 
-The `jam-resource` module works with the mighty [Jam ORM for Kohana 3.2](//github.com/openbuildings/jam)
+The `jam-resource` module works with the mighty [Jam ORM for Kohana 3.3](openbuildings/jam)
 
 Main Features
 -------------
@@ -22,7 +22,7 @@ Defining resources
 The simplest way to define a resource:
 
 ``` php
-<?php 
+<?php
 // Define the users resource
 Resource::set('users');
 ?>
@@ -164,7 +164,7 @@ But it would use the actions in `Controller_Pictures` and the image model.
 Changing the path string is achieved using the `path` option:
 
 ``` php
-<?php 
+<?php
 
 Resource::('users', array(
 	'path' => 'people'
@@ -203,7 +203,7 @@ Generating URLs
 
 You could also generate the resourceful URLs for a specific model or a collection.
 
-Use the 
+Use the
 
 ``` php
 <?php

@@ -21,10 +21,11 @@
 	 */
 	public static function builder($resource)
 	{
-		if (($parent = $resource->parent()) AND $parent->is_multiple())
+		if (($parent = $resource->parent()) AND ! $parent->option('singular'))
 		{
-			$parent_builder = Jam::query($parent->model());
-			if ($parent->is_sluggable())
+			$parent_builder = Jam::all($parent->options('model'));
+
+			if ($parent->option('singular'))
 			{
 				$parent_builder = $parent_builder->find_by_slug_insist($resource->param('parent_id'));
 			}
@@ -33,12 +34,10 @@
 				$parent_builder = $parent_builder->find_insist($resource->param('parent_id'));
 			}
 
-			return $parent_builder->builder($resource->field());
+			return $parent_builder->{$resource->options('field')};
 		}
-		else
-		{
-			return Jam::query($resource->model());
-		}
+
+		return Jam::all($resource->options('model'));
 	}
 
 	/**
@@ -52,14 +51,11 @@
 	public static function object($resource)
 	{
 		$child_query = Resource_Jam::builder($resource);
-		if ($resource->is_sluggable())
-		{
+
+		if ($resource->option('singular'))
 			return $child_query->find_by_slug_insist($resource->param('id'));
-		}
-		else
-		{
-			return $child_query->key((int) $resource->param('id'))->find_insist();
-		}
+
+		return $child_query->key((int) $resource->param('id'))->find_insist();
 	}
 
 	/**
@@ -67,7 +63,8 @@
 	 *
 	 * @static
 	 * @param  mixed  $object Jam_Model or ORM
-	 * @return boolean TRUE if the object implements the sluggable behavior; FALSE otherwise
+	 * @return boolean TRUE if the object implements the sluggable behavior;
+	 * FALSE otherwise
 	 */
 	public static function is_sluggable($object)
 	{

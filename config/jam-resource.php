@@ -1,8 +1,8 @@
 <?php defined('SYSPATH') OR die('No direct script access.');
 
 return array(
-	'key' => 'id',
-	'type' => 'multiple', // multiple or singular
+	'sluggable' => FALSE,
+	'singular' => FALSE, // multiple or singular
 	'format' => FALSE, // default format; set to FALSE if you don't want different formats included in the routes
 	'formats' => array(
 		'html' => TRUE,

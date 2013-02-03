@@ -1,2 +1,2 @@
-## [Http resource]()
+## [Jam Resource]()
 - [Index]()

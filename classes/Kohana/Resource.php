@@ -29,6 +29,23 @@ class Kohana_Resource {
 		)
 	);
 
+	public static $options_available = array(
+		'model',
+		'sluggable',
+		'singular',
+		'controller',
+		'path',
+		'field',
+		'only',
+		'except',
+		'with',
+		'format',
+		'formats',
+		'is_format_required',
+		'slug_regex',
+		'positive_integer_regex',
+	);
+
 	/**
 	 * All the created resources.
 	 * @var array
@@ -38,7 +55,7 @@ class Kohana_Resource {
 	/**
 	 * Set routes and nested resources based on the models
 	 *
-	 * @param string|arrau $model   the name of the resource or an array of names
+	 * @param string|arrau $model the name of the resource or an array of names
 	 * @param array $options array of options - see the usage description
 	 * @param string $parent the name of the parent route
 	 */
@@ -109,6 +126,7 @@ class Kohana_Resource {
 		$protocol = NULL;
 		$params = array();
 		$strings = array();
+
 		foreach ($arguments as $i => $argument)
 		{
 			if (is_string($argument))
@@ -152,6 +170,7 @@ class Kohana_Resource {
 			$params['parent_id'] = $params['id'];
 			unset($params['id']);
 		}
+
 		if ($key)
 		{
 			$params['id'] = $key;
@@ -174,10 +193,13 @@ class Kohana_Resource {
 	{
 		if ($object instanceof Jam_Model AND $object->loaded())
 		{
-			$key = Resource_Jam::is_sluggable($object) ? ($object->slug ?: $object->id()) : $object->id();
+			$key = Resource_Jam::is_sluggable($object) ?
+			 ($object->slug ?: $object->id()) :
+			 $object->id();
 			$params['action'] = 'show';
 			Resource::_set_key($params, $key);
 		}
+
 		return Inflector::plural($object->meta()->model());
 	}
 
@@ -222,28 +244,14 @@ class Kohana_Resource {
 	}
 
 	/**
-	 * The name of the resource. It is used for identifying resources. It is required and must be unique.
+	 * The name of the resource. It is used for identifying resources.
+	 * It is required and must be unique.
+	 * If you use the same name the resource would be overwritten.
 	 * @var string
 	 */
 	protected $_name;
 
-	/**
-	 * The name of the model
-	 * @var string
-	 */
-	protected $_model;
-
-	/**
-	 * Defines if the resource is singular
-	 * @var boolean
-	 */
-	protected $_is_singular;
-
-	/**
-	 * Defines if the resource is sluggable
-	 * @var boolean
-	 */
-	protected $_is_sluggable;
+	protected $_options = array();
 
 	/**
 	 * The parent resource name
@@ -253,18 +261,6 @@ class Kohana_Resource {
 
 	protected $_routes = array();
 
-	/**
-	 * The path string used in urls when setting routes.
-	 * @var string
-	 */
-	protected $_path;
-
-	/**
-	 * The name of the controller for the resource
-	 * @var string
-	 */
-	protected $_controller;
-
 	protected $_child_options = array();
 
 	/**
@@ -272,12 +268,6 @@ class Kohana_Resource {
 	 * @var array
 	 */
 	protected $_children = array();
-
-	protected $_format = 'html';
-
-	protected $_formats = array();
-
-	protected $_is_format_required = FALSE;
 
 	/**
 	 * Route params for the resource.
@@ -301,93 +291,113 @@ class Kohana_Resource {
 	{
 		$this->_name = $name;
 
-		$model = Arr::get($options, 'model', Inflector::singular($name));
+		$this->_options['field'] = $this->option('field', $this->name());
+
+		$this->_options = array_filter(
+			Arr::merge(
+				(array) Kohana::$config->load('jam-resource'),
+				Arr::extract($options, Resource::$options_available)
+			), function($value)
+			{
+				return $value !== NULL;
+			}
+		);
+
+		$model = $this->option('model', Inflector::singular($name));
 
 		if ($model !== FALSE)
 		{
 			if ( ! (bool) Jam::meta($model))
-				throw new Resource_Exception_Nomodel('The model :model does not exist', $model);
+				throw new Kohana_Exception('The model :model does not exist', $model);
 
-			$this->_model = $model;
+			$this->_options['model'] = $model;
 		}
 
-		$this->_is_singular = (bool) Arr::get($options, 'singular', Kohana::$config->load('jam-resource.singular'));
-
-		if ( ! $this->is_singular())
+		if ($this->option('singular'))
 		{
-			$this->_is_sluggable = (bool) Arr::get($options,'sluggable', Kohana::$config->load('jam-resource.sluggable'));
+			$this->_options['sluggable'] = FALSE;
 		}
 
-		$this->_path = Arr::get($options, 'path', $this->is_singular() ? Inflector::singular($name) : $name);
-		$path_base = basename($this->_path);
-		$this->_controller = Arr::get($options, 'controller', $this->is_singular() ? $path_base : Inflector::singular($path_base, 2));
-		$this->_format = Arr::get($options, 'format', Kohana::$config->load('jam-resource.format'));
-		$this->_formats = Arr::get($options, 'formats', array_keys(array_filter(Kohana::$config->load('jam-resource.formats'))));
-		$this->_is_format_required = Arr::get($options, 'is_format_required', (bool) Kohana::$config->load('jam-resource.is_format_required'));
+		$this->_options['path'] = $this->option('path', $this->option('singular') ?
+			Inflector::singular($name) :
+			$name
+		);
 
-		if ($only = Arr::get($options, 'only'))
+		$path_base = basename($this->option('path'));
+
+		$this->_options['controller'] = $this->option('controller', $this->option('singular') ?
+			$path_base :
+			Inflector::singular($path_base, 2)
+		);
+
+		$this->_options['formats'] = $this->option('formats', array_keys(array_filter(Kohana::$config->load('jam-resource.formats'))));
+
+		if ($only = $this->option('only'))
 		{
 			foreach (Resource::$actions_map as $actions_type => $actions_group)
 			{
 				if ($actions_group)
 				{
-					if ($actions_type != 'member' AND $this->is_singular())
+					if ($actions_type != 'member' AND $this->option('singular'))
 					{
 						$actions_type = 'member';
 					}
+
 					$this->_actions = Arr::merge($this->_actions, array(
-						$actions_type => array_filter(Arr::extract($actions_group, (array) $only))
+						$actions_type => array_filter(
+							Arr::extract($actions_group, (array) $only)
+						)
 					));
 				}
 			}
 		}
-		elseif ($except = Arr::get($options, 'except'))
+		elseif ($except = $this->option('except'))
 		{
 			foreach (Resource::$actions_map as $actions_type => $actions_group)
 			{
 				if ($actions_group)
 				{
-					$this->_actions[$actions_type] = array_filter(Arr::extract($actions_group, array_diff(array_keys($actions_group), (array) $except)));
+					$this->_actions[$actions_type] = array_filter(
+						Arr::extract($actions_group, array_diff(
+							array_keys($actions_group),
+							(array) $except
+						))
+					);
 				}
 			}
 		}
-		elseif ( ! array_key_exists('only', $options))
+		elseif ( ! array_key_exists('only', $this->_options))
 		{
 			$this->_actions = Resource::$actions_map;
 		}
 
-		$this->_add_actions( (array) Arr::get($options, 'with'));
+		$this->_add_actions( (array) $this->option('with'));
 
 		if ($parent)
 		{
 			$this->_parent = $parent;
-			$this->_name = $this->_parent->name().'_'.$this->_name;
+			$this->_name = $this->_parent->name().'_'.$this->name();
 			$this->_child_options = array();
 		}
 		else
 		{
-			unset(
-				$options['model'],
-				$options['sluggable'],
-				$options['singular'],
-				$options['controller'],
-				$options['path'],
-				$options['only'],
-				$options['except'],
-				$options['with'],
-				$options['format'],
-				$options['formats'],
-				$options['is_format_required']
-			);
+			foreach (Resource::$options_available as $option)
+			{
+				unset($options[$option]);
+			}
+
 			$this->_child_options = array_filter($options);
 		}
 
 		$this->_set_routes();
 	}
 
-	public function builder()
+	public function option($option = NULL, $default = NULL)
 	{
-		return Resource_Jam::builder($this);
+		if ($option === NULL)
+			return $this->_options;
+
+		return Arr::path($this->_options, $option, $default);
 	}
 
 	/**
@@ -396,7 +406,7 @@ class Kohana_Resource {
 	 */
 	public function collection()
 	{
-		return $this->builder()->select_all();
+		return Resource_Jam::builder($this);
 	}
 
 	/**
@@ -434,41 +444,21 @@ class Kohana_Resource {
 	public function param($param = NULL)
 	{
 		if ($param === NULL)
-		{
 			return $this->_params;
-		}
-		elseif (is_array($param))
+
+		if (is_array($param))
 		{
 			$this->_params = Arr::merge($this->_params, $param);
 			return $this;
 		}
+
 		if ( ! isset($this->_params[$param]))
-		{
-			throw new Resource_Exception('The :param param is missing from the :resource resource!', array(
-				':resource' => $this->_name,
+			throw new Kohana_Exception('The :param param is missing from the :resource resource!', array(
+				':resource' => $this->name(),
 				':param' => $param
 			));
-		}
+
 		return Arr::get($this->_params, $param);
-	}
-
-	/**
-	 * Check if the resource should use slugs instead of primary keys.
-	 * @return boolean
-	 */
-	public function is_sluggable()
-	{
-		return $this->_is_sluggable;
-	}
-
-	public function is_multiple()
-	{
-		return ! $this->is_singular();
-	}
-
-	public function is_singular()
-	{
-		return $this->_is_singular;
 	}
 
 	public function actions()
@@ -484,9 +474,8 @@ class Kohana_Resource {
 	public function children($child_name = NULL)
 	{
 		if ($child_name)
-		{
 			return (bool) Arr::get($this->_children, $child_name);
-		}
+
 		return $this->_children;
 	}
 
@@ -500,39 +489,12 @@ class Kohana_Resource {
 	}
 
 	/**
-	 * Get the resource model name
-	 * @return string
-	 */
-	public function model()
-	{
-		return $this->_model;
-	}
-
-	/**
 	 * Get the parent resource
 	 * @return Resource
 	 */
 	public function parent()
 	{
 		return $this->_parent;
-	}
-
-	/**
-	 * Get the resource path string
-	 * @return string
-	 */
-	public function path()
-	{
-		return $this->_path;
-	}
-
-	/**
-	 * Get the resource controller name
-	 * @return string
-	 */
-	public function controller()
-	{
-		return $this->_controller;
 	}
 
 	/**
@@ -596,10 +558,16 @@ class Kohana_Resource {
 	 */
 	protected function _set_child($child_name, $child_options)
 	{
-		$child_options['path'] = $this->path()
+		$child_options['path'] = $this->option('path')
 			.'/'
-			.($this->is_multiple() ? '<parent_id>/' : '')
-			.Arr::get($child_options, 'path', Arr::get($child_options, 'singular') ? Inflector::singular($child_name) : $child_name);
+			.( ! $this->option('singular') ? '<parent_id>/' : '')
+			.Arr::get(
+				$child_options,
+				'path',
+				Arr::get($child_options, 'singular') ?
+				 Inflector::singular($child_name) :
+				 $child_name
+			);
 
 		$child_resource = Resource::set($child_name, $child_options, $this);
 
@@ -623,9 +591,14 @@ class Kohana_Resource {
 		{
 			foreach ($actions as $action => $method)
 			{
-				if ( ! ($this->is_singular() AND $action == 'index'))
+				if ( ! ($this->option('singular') AND $action == 'index'))
 				{
-					$route_name = $this->_set_route($actions_group, $action, $method);
+					$route_name = $this->_set_route(
+						$actions_group,
+						$action,
+						$method
+					);
+
 					$this->_routes[] = $route_name;
 				}
 			}
@@ -647,56 +620,77 @@ class Kohana_Resource {
 		$format_string = $id_string = $action_string = '';
 		$route_regex = array();
 		$route_defaults = array(
-			'controller'  => $this->controller(),
+			'controller'  => $this->option('controller'),
 			'action'      => $action
 		);
 
 		if (($parent = $this->parent()))
 		{
-			if ($parent->is_multiple())
+			if ( ! $parent->option('singular'))
 			{
-				if ($parent->is_sluggable())
+				if ($parent->option('sluggable'))
 				{
-					$route_regex['parent_id'] = Kohana::$config->load('jam-resource.slug_regex');
+					$route_regex['parent_id'] = Kohana::$config
+						->load('jam-resource.slug_regex');
 				}
 				else
 				{
-					$route_regex['parent_id'] = Kohana::$config->load('jam-resource.positive_integer_regex');
+					$route_regex['parent_id'] = Kohana::$config
+						->load('jam-resource.positive_integer_regex');
 				}
 			}
 		}
 
-		if ($this->is_multiple() AND $type == 'member')
+		if (! $this->option('singular') AND $type == 'member')
 		{
 			$id_string = '/<id>';
-			if ($this->is_sluggable())
+
+			if ($this->option('sluggable'))
 			{
-				$route_regex['id'] = Kohana::$config->load('jam-resource.slug_regex');
+				$route_regex['id'] = Kohana::$config
+					->load('jam-resource.slug_regex');
 			}
 			else
 			{
-				$route_regex['id'] = Kohana::$config->load('jam-resource.positive_integer_regex');
+				$route_regex['id'] = Kohana::$config
+					->load('jam-resource.positive_integer_regex');
 			}
 		}
 
-		if ( ! in_array($action, array('index', 'create', 'show', 'update', 'destroy')))
+		if ( ! in_array($action, array(
+			'index',
+			'create',
+			'show',
+			'update',
+			'destroy'
+		)))
 		{
 			$action_string = '/'.$action;
 		}
 
-		if ($this->_format !== FALSE)
+		if ($this->option('format') !== FALSE)
 		{
-			$route_regex['format'] = count($this->_formats) > 1 ? '('.implode('|', $this->_formats).')' : Arr::get($this->_formats, 0, '');
-			$route_defaults['format'] = $this->_format;
+			$route_regex['format'] = count($this->option('formats')) > 1 ?
+			 '('.implode('|', $this->option('formats')).')' :
+			  $this->option('formats.0', '');
+
+			$route_defaults['format'] = $this->option('format');
 			$format_string = '.<format>';
 
-			if ( ! $this->_is_format_required)
+			if ( ! $this->option('is_format_required'))
 			{
 				$format_string = '('.$format_string.')';
 			}
 		}
 
-		Route::set($route_name, $this->path().$id_string.$action_string.$format_string, $route_regex, array(
+		Route::set(
+			$route_name,
+			$this->option('path')
+			 .$id_string
+			 .$action_string
+			 .$format_string,
+			$route_regex,
+			array(
 			'resource' => $this->name(),
 			'method' => $method
 		))

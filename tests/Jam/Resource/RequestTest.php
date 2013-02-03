@@ -3,11 +3,11 @@
 /**
  * @package Jam Resource
  * @group jam-resource
- * @groupjam-resource.request
+ * @group jam-resource.request
  */
-class Jam_Resource_RequestTest extends Unittest_Resource_Testcase {
+class Jam_Resource_RequestTest extends Unittest_TestCase {
 
-	public function test_method()
+	public function test_resolve_method()
 	{
 		$this->markTestIncomplete();
 	}
