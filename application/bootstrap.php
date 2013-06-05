@@ -66,14 +66,14 @@ I18n::lang('en-us');
 Cookie::$salt = '3hfkn3j43n5kjl34n';
 
 /**
- * Set Kohana::$environment if a 'KOHANA_ENV' environment variable has been supplied.
+ * Set Kohana::$environment if a 'PHP_APP_ENV' environment variable has been supplied.
  *
  * Note: If you supply an invalid environment name, a PHP warning will be thrown
  * saying "Couldn't find constant Kohana::<INVALID_ENV_NAME>"
  */
-if (isset($_SERVER['KOHANA_ENV']))
+if (isset($_SERVER['PHP_APP_ENV']))
 {
-	Kohana::$environment = constant('Kohana::'.strtoupper($_SERVER['KOHANA_ENV']));
+	Kohana::$environment = constant('Kohana::'.strtoupper($_SERVER['PHP_APP_ENV']));
 }
 
 /**
@@ -92,7 +92,8 @@ if (isset($_SERVER['KOHANA_ENV']))
  * - boolean  expose      set the X-Powered-By header                        FALSE
  */
 Kohana::init(array(
-	'base_url'   => '/kohana/',
+	'base_url'   => '/',
+	'index_file' => ''
 ));
 
 /**
@@ -122,12 +123,28 @@ Kohana::modules(array(
 	// 'userguide'  => MODPATH.'userguide',  // User guide and API documentation
 	));
 
+Resource::$actions_map = array(
+	'collection' => array(
+		'index'   => 'get',
+		// 'new'     => 'get',
+		'create'  => array('get', 'post'),
+	),
+	'member'     => array(
+		'show'    => 'get',
+		'edit'    => array('get', 'post'),
+		// 'update'  => 'put',
+		'delete'  => array('post', 'delete')
+	)
+);
+
+Resource::set('users');
+
 /**
  * Set the routes. Each route must have a minimum of a name, a URI and a set of
  * defaults for the URI.
  */
-Route::set('default', '(<controller>(/<action>(/<id>)))')
-	->defaults(array(
-		'controller' => 'welcome',
-		'action'     => 'index',
-	));
+// Route::set('default', '(<controller>(/<action>(/<id>)))')
+// 	->defaults(array(
+// 		'controller' => 'welcome',
+// 		'action'     => 'index',
+// 	));
