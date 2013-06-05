@@ -157,53 +157,6 @@ class Kohana_Resource {
 	}
 
 	/**
-	 * Set a key in the params and if it has been already set move the old one to the parent key
-	 *
-	 * @static
-	 * @param array &$params a reference to the params array on which to operate on
-	 * @param int $key     The key which to be set if provided
-	 */
-	protected static function _set_key(&$params, $key = NULL)
-	{
-		if (isset($params['id']))
-		{
-			$params['parent_id'] = $params['id'];
-			unset($params['id']);
-		}
-
-		if ($key)
-		{
-			$params['id'] = $key;
-		}
-		else
-		{
-			$params['action'] = 'index';
-		}
-	}
-
-	/**
-	 * Parse an object or a collection and returns the name of the model
-	 *
-	 * @static
-	 * @param  mixed $object a model object depending on the drivers; it could be Jam_Collection, Jam_Builder, Jam_Object, ORM or Database_Result
-	 * @param  array $params if the object is loaded it would set id in params to the key of the object
-	 * @return string
-	 */
-	protected static function _parse_object($object, &$params)
-	{
-		if ($object instanceof Jam_Model AND $object->loaded())
-		{
-			$key = Resource_Jam::is_sluggable($object) ?
-			 ($object->slug ?: $object->id()) :
-			 $object->id();
-			$params['action'] = 'show';
-			Resource::_set_key($params, $key);
-		}
-
-		return Inflector::plural($object->meta()->model());
-	}
-
-	/**
 	 * Saves or loads the resource cache. If your resources will remain the same for
 	 * a long period of time, use this to reload the resources from the cache
 	 * rather than redefining them on every page load.
@@ -241,6 +194,66 @@ class Kohana_Resource {
 				return Resource::$cache = FALSE;
 			}
 		}
+	}
+
+	/**
+	 * Set a key in the params and if it has been already set move the old one to the parent key
+	 *
+	 * @static
+	 * @param array &$params a reference to the params array on which to operate on
+	 * @param int $key     The key which to be set if provided
+	 */
+	protected static function _set_key(&$params, $key = NULL)
+	{
+		if (isset($params['id']))
+		{
+			$params['parent_id'] = $params['id'];
+			unset($params['id']);
+		}
+
+		if ($key)
+		{
+			$params['id'] = $key;
+		}
+		else
+		{
+			$params['action'] = 'index';
+		}
+	}
+
+	/**
+	 * Parse an object or a collection and returns the name of the model
+	 *
+	 * @static
+	 * @param  mixed $object a model object depending on the drivers; it could be Jam_Collection, Jam_Builder, Jam_Object, ORM or Database_Result
+	 * @param  array $params if the object is loaded it would set id in params to the key of the object
+	 * @return string
+	 */
+	protected static function _parse_object($object, & $params)
+	{
+		if ($object instanceof Jam_Model AND $object->loaded())
+		{
+			$key = Resource::_is_model_sluggable($object)
+				? ($object->slug ?: $object->id())
+				: $object->id();
+			$params['action'] = 'show';
+			Resource::_set_key($params, $key);
+		}
+
+		return Inflector::plural($object->meta()->model());
+	}
+
+	/**
+	 * Checks if a model object is using the sluggable behavior
+	 *
+	 * @static
+	 * @param  mixed  $object Jam_Model
+	 * @return boolean TRUE if the object implements the sluggable behavior;
+	 * FALSE otherwise
+	 */
+	protected static function _is_model_sluggable($object)
+	{
+		return array_key_exists('sluggable', $object->meta()->behaviors()) AND $object->slug;
 	}
 
 	/**
@@ -401,21 +414,41 @@ class Kohana_Resource {
 	}
 
 	/**
-	 * Get the collection  object for the resource
+	 * Get the collection object for the resource
 	 * @return Jam_Collection
 	 */
 	public function collection()
 	{
-		return Resource_Jam::builder($this);
+		if (($parent = $this->parent()) AND ! $parent->option('singular'))
+		{
+			$parent_builder = Jam::all($parent->option('model'));
+
+			if ($parent->option('singular'))
+			{
+				$parent_builder = $parent_builder->find_by_slug_insist($this->param('parent_id'));
+			}
+			else
+			{
+				$parent_builder = $parent_builder->where_key($this->param('parent_id'))->first_insist();
+			}
+
+			return $parent_builder->{$this->option('field')};
+		}
+
+		return Jam::all($this->option('model'));
 	}
 
 	/**
 	 * Get the model object for the resource.
+	 * If the resource has a parent resource the method should return the child object regarding the parent limitation.
 	 * @return mixed depending on the driver - Jam_Model or ORM
 	 */
 	public function object()
 	{
-		return Resource_Jam::object($this);
+		if ($this->option('singular'))
+			return $this->collection()->find_by_slug_insist($this->param('id'));
+
+		return $this->collection()->where_key((int) $this->param('id'))->first_insist();
 	}
 
 	/**
