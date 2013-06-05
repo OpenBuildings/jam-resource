@@ -663,13 +663,11 @@ class Kohana_Resource {
 			{
 				if ($parent->option('sluggable'))
 				{
-					$route_regex['parent_id'] = Kohana::$config
-						->load('jam-resource.slug_regex');
+					$route_regex['parent_id'] = $parent->option('slug_regex');
 				}
 				else
 				{
-					$route_regex['parent_id'] = Kohana::$config
-						->load('jam-resource.positive_integer_regex');
+					$route_regex['parent_id'] = $parent->option('positive_integer_regex');
 				}
 			}
 		}
@@ -680,13 +678,11 @@ class Kohana_Resource {
 
 			if ($this->option('sluggable'))
 			{
-				$route_regex['id'] = Kohana::$config
-					->load('jam-resource.slug_regex');
+				$route_regex['id'] = $this->option('slug_regex');
 			}
 			else
 			{
-				$route_regex['id'] = Kohana::$config
-					->load('jam-resource.positive_integer_regex');
+				$route_regex['id'] = $this->option('positive_integer_regex');
 			}
 		}
 
