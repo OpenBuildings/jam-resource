@@ -324,14 +324,12 @@ class Kohana_Resource {
 
 		$this->_options['field'] = $this->option('field', $this->name());
 
-		$this->_options = array_filter(
-			Arr::merge(
-				(array) Kohana::$config->load('jam-resource'),
-				Arr::extract($options, Resource::$options_available)
-			), function($value)
+		$this->_options = Arr::merge(
+			(array) Kohana::$config->load('jam-resource'),
+			array_filter(Arr::extract($options, Resource::$options_available), function($value)
 			{
 				return $value !== NULL;
-			}
+			})
 		);
 
 		$model = $this->option('model', Inflector::singular($name));
@@ -706,10 +704,7 @@ class Kohana_Resource {
 
 		if ( ! in_array($action, array(
 			'index',
-			'create',
 			'show',
-			'update',
-			'destroy'
 		)))
 		{
 			$action_string = '/'.$action;
