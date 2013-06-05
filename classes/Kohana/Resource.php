@@ -124,8 +124,7 @@ class Kohana_Resource {
 	{
 		$arguments = func_get_args();
 		$protocol = NULL;
-		$params = array();
-		$strings = array();
+		$params = $query = $strings = array();
 
 		foreach ($arguments as $i => $argument)
 		{
@@ -133,7 +132,7 @@ class Kohana_Resource {
 			{
 				$strings[] = $argument;
 				Resource::_set_key($params);
-				if (Inflector::singular($argument) == $argument)
+				if (Inflector::singular($argument) == $argument AND ! isset($params['action']))
 				{
 					$params['action'] = 'show';
 				}
@@ -144,16 +143,31 @@ class Kohana_Resource {
 			}
 			elseif (is_array($argument))
 			{
-				$params = Arr::merge($params, $argument);
+				// only `action` and `id` are counted as route params
+				$params = Arr::merge($params, array_filter(Arr::extract($argument, array('action', 'id'))));
+
+				// If `protocol` key is supplied in an array argument it is assumed to be protocol
+				$protocol = Arr::get($argument, 'protocol', $protocol);
+
+				unset($argument['action'], $argument['id'], $argument['protocol']);
+
+				// the rest of the keys are query parameters
+				$query = Arr::merge($query, $argument);
 			}
-			elseif (is_bool($argument) OR is_null($argument))
+			elseif (is_bool($argument))
 			{
 				$protocol = $argument;
 			}
 		}
-		$protocol = Arr::get($params, 'protocol', $protocol);
 		$strings[] = Arr::get($params, 'action', 'index');
-		return Route::url(implode('_', $strings), $params, $protocol);
+		$url = Route::url(implode('_', $strings), $params, $protocol);
+
+		if ($query)
+		{
+			$url .= URL::query($query, FALSE);
+		}
+
+		return $url;
 	}
 
 	/**
@@ -203,7 +217,7 @@ class Kohana_Resource {
 	 * @param array &$params a reference to the params array on which to operate on
 	 * @param int $key     The key which to be set if provided
 	 */
-	protected static function _set_key(&$params, $key = NULL)
+	protected static function _set_key( & $params, $key = NULL)
 	{
 		if (isset($params['id']))
 		{
