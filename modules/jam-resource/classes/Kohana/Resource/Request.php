@@ -51,15 +51,15 @@ class Kohana_Resource_Request extends Kohana_Request {
 	 */
 	public function resource()
 	{
-		if ( ! $this->_route->_resource_name)
+		if ( ! $this->_route->resource_name())
 			return NULL;
 
-		return Resource::get($this->_route->_resource_name)
+		return Resource::get($this->_route->resource_name())
 			->param($this->param());
 	}
 
 	public function resource_name()
 	{
-		return $this->_route->_resource_name;
+		return $this->_route->resource_name();
 	}
 }
