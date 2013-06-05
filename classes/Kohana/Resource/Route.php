@@ -19,10 +19,10 @@ class Kohana_Resource_Route extends Kohana_Route {
 	 *             'controller' => 'welcome',
 	 *         ));
 	 *
-	 * @param   $name         string  route name
-	 * @param   $uri string  URI pattern
-	 * @param   $regex array  regex patterns for route keys
-	 * @param   $resource     string  the nameresource for this route
+	 * @param   $name    string route name
+	 * @param   $uri     string URI pattern
+	 * @param   $regex   array  regex patterns for route keys
+	 * @param   $options array  Optional method and resourse for the route
 	 * @return  Route
 	 */
 	public static function set($name, $uri = NULL, $regex = NULL, array $options = array())

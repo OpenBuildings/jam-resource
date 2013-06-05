@@ -672,7 +672,7 @@ class Kohana_Resource {
 			}
 		}
 
-		if (! $this->option('singular') AND $type == 'member')
+		if ( ! $this->option('singular') AND $type == 'member')
 		{
 			$id_string = '/<id>';
 
@@ -714,10 +714,7 @@ class Kohana_Resource {
 
 		Route::set(
 			$route_name,
-			$this->option('path')
-			 .$id_string
-			 .$action_string
-			 .$format_string,
+			$this->option('path').$id_string.$action_string.$format_string,
 			$route_regex,
 			array(
 			'resource' => $this->name(),
