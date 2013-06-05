@@ -1,0 +1,39 @@
+{
+    "name": "openbuildings/jam-resource",
+    "version": "0.3.0",
+    "description": "Kohana resources for Jam ORM which connect routes, controllers and models",
+    "type": "kohana-module",
+    "homepage": "https://github.com/openbuildings/jam-resource",
+    "license": "ICS",
+    "require": {
+        "openbuildings/jam": "dev-master"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.7.*",
+        "phpunit/dbunit": "1.2.*"
+    },
+    "authors": [
+        {
+            "name": "Haralan Dobrev",
+            "email": "hdobrev@despark.com",
+            "homepage": "https://github.com/hkdobrev",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "email": "hdobrev@despark.com",
+        "issues": "https://github.com/openbuildings/jam-resource/issues",
+        "source": "https://github.com/openbuildings/jam-resource"
+    },
+    "keywords": [
+        "kohana",
+        "jam",
+        "orm",
+        "routes",
+        "resource",
+        "resources",
+        "controllers",
+        "models",
+        "urls"
+    ]
+}
