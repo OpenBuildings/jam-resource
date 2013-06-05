@@ -31,7 +31,7 @@
 			}
 			else
 			{
-				$parent_builder = $parent_builder->find_insist($resource->param('parent_id'));
+				$parent_builder = $parent_builder->where_key($resource->param('parent_id'))->first_insist();
 			}
 
 			return $parent_builder->{$resource->option('field')};
@@ -55,7 +55,7 @@
 		if ($resource->option('singular'))
 			return $child_query->find_by_slug_insist($resource->param('id'));
 
-		return $child_query->key((int) $resource->param('id'))->find_insist();
+		return $child_query->where_key((int) $resource->param('id'))->first_insist();
 	}
 
 	/**
