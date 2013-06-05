@@ -151,7 +151,7 @@ class Kohana_Resource {
 				$protocol = $argument;
 			}
 		}
-		$protocol = Arr::get($params, 'protoctol', $protocol);
+		$protocol = Arr::get($params, 'protocol', $protocol);
 		$strings[] = Arr::get($params, 'action', 'index');
 		return Route::url(implode('_', $strings), $params, $protocol);
 	}
