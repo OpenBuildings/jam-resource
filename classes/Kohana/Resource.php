@@ -286,6 +286,10 @@ class Kohana_Resource {
 	 */
 	protected $_parent;
 
+	/**
+	 * The names of the routes for this resource
+	 * @var array
+	 */
 	protected $_routes = array();
 
 	protected $_child_options = array();
@@ -462,7 +466,7 @@ class Kohana_Resource {
 		if ($this->option('singular'))
 			return $this->collection()->find_by_slug_insist($this->param('id'));
 
-		return $this->collection()->where_key((int) $this->param('id'))->first_insist();
+		return $this->collection()->where_key( (int) $this->param('id'))->first_insist();
 	}
 
 	/**
@@ -624,8 +628,8 @@ class Kohana_Resource {
 	/**
 	 * Set the children resources and the routes for the resource depending on the options and the type provided.
 	 * @return $this
-	 * @uses Resource_Routes for the routes
-	 * @uses $this->_set_child for the child resources
+	 * @uses $this->_set_route() for the routes
+	 * @uses $this->_set_child() for the child resources
 	 */
 	protected function _set_routes()
 	{
@@ -659,7 +663,7 @@ class Kohana_Resource {
 	 * @param string $type 'member' or 'collection'
 	 * @param string $action
 	 * @param string $method the HTTP method for this route
-	 * @return Route the created Resource_Route object
+	 * @return string the name of the created route
 	 */
 	protected function _set_route($type, $action, $method)
 	{
@@ -731,9 +735,10 @@ class Kohana_Resource {
 			$this->option('path').$id_string.$action_string.$format_string,
 			$route_regex,
 			array(
-			'resource' => $this->name(),
-			'method' => $method
-		))
+				'resource' => $this->name(),
+				'method' => $method
+			)
+		)
 			->defaults($route_defaults);
 
 		return $route_name;
