@@ -23,7 +23,7 @@
 	{
 		if (($parent = $resource->parent()) AND ! $parent->option('singular'))
 		{
-			$parent_builder = Jam::all($parent->options('model'));
+			$parent_builder = Jam::all($parent->option('model'));
 
 			if ($parent->option('singular'))
 			{
@@ -34,10 +34,10 @@
 				$parent_builder = $parent_builder->find_insist($resource->param('parent_id'));
 			}
 
-			return $parent_builder->{$resource->options('field')};
+			return $parent_builder->{$resource->option('field')};
 		}
 
-		return Jam::all($resource->options('model'));
+		return Jam::all($resource->option('model'));
 	}
 
 	/**
