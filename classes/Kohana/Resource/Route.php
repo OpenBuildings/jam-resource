@@ -22,7 +22,7 @@ class Kohana_Resource_Route extends Kohana_Route {
 	 * @param   $name    string route name
 	 * @param   $uri     string URI pattern
 	 * @param   $regex   array  regex patterns for route keys
-	 * @param   $options array  Optional method and resourse for the route
+	 * @param   $options array  Optional method and resource for the route
 	 * @return  Route
 	 */
 	public static function set($name, $uri = NULL, $regex = NULL, array $options = array())
@@ -51,6 +51,17 @@ class Kohana_Resource_Route extends Kohana_Route {
 			return $method == $route->_method;
 
 		return in_array($method, $route->_method);
+	}
+
+	public static function introspect($url, $method = Request::GET)
+	{
+		if (strpos($url, '://') !== FALSE)
+		{
+			$url = parse_url($url, PHP_URL_PATH);
+		}
+		$url = ltrim($url, '/');
+		$request = Request::factory($url)->method($method);
+		return Request::process($request);
 	}
 
 	/**
@@ -98,4 +109,8 @@ class Kohana_Resource_Route extends Kohana_Route {
 		return $this->_resource_name;
 	}
 
+	public function get_uri()
+	{
+		return $this->_uri;
+	}
 }

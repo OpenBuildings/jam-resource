@@ -104,7 +104,7 @@ class Kohana_Resource {
 	}
 
 	/**
-	 * Generate an URL for the specified arguments.
+	 * Generate a URL for the specified arguments.
 	 * Arguments could be model objects, strings, arrays or booleans.
 	 * Model objects are resolved to strings and route params are set from them - slugs or primary keys.
 	 * Arrays are used as additional route params.
@@ -130,6 +130,70 @@ class Kohana_Resource {
 		{
 			if (is_string($argument))
 			{
+				$strings []= $argument;
+				Resource::_set_key($params);
+				if (Inflector::singular($argument) == $argument AND ! isset($params['action']))
+				{
+					$params['action'] = 'show';
+				}
+			}
+			elseif (is_object($argument))
+			{
+				$strings []= Resource::_parse_object($argument, $params);
+			}
+			elseif (is_array($argument))
+			{
+				// only `action`, `format`, `id` and `parent_id` are counted as route params
+				$params = Arr::merge($params, array_filter(Arr::extract($argument, array('action', 'format', 'parent_id', 'id'))));
+
+				// If `protocol` key is supplied in an array argument it is assumed to be protocol
+				$protocol = Arr::get($argument, 'protocol', $protocol);
+
+				unset($argument['action'], $argument['format'], $argument['parent_id'], $argument['id'], $argument['protocol']);
+
+				// the rest of the keys are query parameters
+				$query = Arr::merge($query, $argument);
+			}
+			elseif (is_bool($argument))
+			{
+				$protocol = $argument;
+			}
+		}
+		$strings []= Arr::get($params, 'action', 'index');
+		$url = Route::url(implode('_', $strings), $params, $protocol);
+
+		if ($query)
+		{
+			$url .= URL::query($query, FALSE);
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Retrieves a Route for the specified arguments.
+	 * Arguments could be model objects or strings.
+	 * Model objects are resolved to strings.
+	 *
+	 * Usage:
+	 * 		Resource::url($user, 'images'); // Route matching /users/<id>/images
+	 *
+	 * 	If model objects are given as arguments their name is used in singular form.
+	 * 	If collection objects are given as arguments their name is used in plural form.
+	 *
+	 * 	The point is to generate a correct route name and find it by name
+	 *
+	 * @return Route
+	 */
+	public function route()
+	{
+		$arguments = func_get_args();
+		$params = $strings = array();
+
+		foreach ($arguments as $i => $argument)
+		{
+			if (is_string($argument))
+			{
 				$strings[] = $argument;
 				Resource::_set_key($params);
 				if (Inflector::singular($argument) == $argument AND ! isset($params['action']))
@@ -143,31 +207,19 @@ class Kohana_Resource {
 			}
 			elseif (is_array($argument))
 			{
-				// only `action` and `id` are counted as route params
-				$params = Arr::merge($params, array_filter(Arr::extract($argument, array('action', 'id'))));
-
-				// If `protocol` key is supplied in an array argument it is assumed to be protocol
-				$protocol = Arr::get($argument, 'protocol', $protocol);
-
-				unset($argument['action'], $argument['id'], $argument['protocol']);
-
-				// the rest of the keys are query parameters
-				$query = Arr::merge($query, $argument);
-			}
-			elseif (is_bool($argument))
-			{
-				$protocol = $argument;
+				if ($action = Arr::get($argument, 'action'))
+				{
+					$params['action'] = $action;
+				}
 			}
 		}
-		$strings[] = Arr::get($params, 'action', 'index');
-		$url = Route::url(implode('_', $strings), $params, $protocol);
 
-		if ($query)
+		if ( ! empty($params['action']))
 		{
-			$url .= URL::query($query, FALSE);
+			$strings []= $params['action'];
 		}
 
-		return $url;
+		return Route::get(implode('_', $strings));
 	}
 
 	/**
@@ -322,7 +374,6 @@ class Kohana_Resource {
 	{
 		$this->_name = $name;
 
-		$this->_options['field'] = $this->option('field', $this->name());
 
 		$this->_options = Arr::merge(
 			(array) Kohana::$config->load('jam-resource'),
@@ -332,12 +383,14 @@ class Kohana_Resource {
 			})
 		);
 
+		$this->_options['field'] = $this->option('field', $this->name());
+		
 		$model = $this->option('model', Inflector::singular($name));
 
 		if ($model !== FALSE)
 		{
 			if ( ! (bool) Jam::meta($model))
-				throw new Kohana_Exception('The model :model does not exist', $model);
+				throw new Kohana_Exception('The model :model does not exist', array(':model' => $model));
 
 			$this->_options['model'] = $model;
 		}
@@ -439,16 +492,16 @@ class Kohana_Resource {
 		{
 			$parent_builder = Jam::all($parent->option('model'));
 
-			if ($parent->option('singular'))
+			if ($parent->option('sluggable'))
 			{
-				$parent_builder = $parent_builder->find_by_slug_insist($this->param('parent_id'));
+				$parent_builder = $parent_builder->where_slug($this->param('parent_id'));
 			}
 			else
 			{
-				$parent_builder = $parent_builder->where_key($this->param('parent_id'))->first_insist();
+				$parent_builder = $parent_builder->where_key($this->param('parent_id'));
 			}
 
-			return $parent_builder->{$this->option('field')};
+			return $parent_builder->first_insist()->{$this->option('field')};
 		}
 
 		return Jam::all($this->option('model'));
@@ -461,10 +514,18 @@ class Kohana_Resource {
 	 */
 	public function object()
 	{
-		if ($this->option('singular'))
-			return $this->collection()->find_by_slug_insist($this->param('id'));
+		$builder = $this->collection();
+		
+		if ($this->option('sluggable'))
+		{
+			$builder = $builder->where_slug($this->param('id'));
+		}
+		else
+		{
+			$builder->where_key( (int) $this->param('id'));
+		}
 
-		return $this->collection()->where_key( (int) $this->param('id'))->first_insist();
+		return $builder->first_insist();
 	}
 
 	/**
