@@ -5,7 +5,7 @@
  * @group jam-resource
  * @group jam-resource.resource
  */
-class Jam_ResourceTest extends Unittest_TestCase {
+class Jam_ResourceTest extends PHPUnit_Framework_TestCase {
 
 	public function test_actions_map()
 	{

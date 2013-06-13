@@ -6,7 +6,7 @@
  * @group jam-resource
  * @group jam-resource.route
  */
-class Jam_Resource_RouteTest extends Unittest_TestCase {
+class Jam_Resource_RouteTest extends PHPUnit_Framework_TestCase {
 
 	public function test_set_without_resource()
 	{

@@ -5,7 +5,7 @@
  * @group jam-resource
  * @group jam-resource.request
  */
-class Jam_Resource_RequestTest extends Unittest_TestCase {
+class Jam_Resource_RequestTest extends PHPUnit_Framework_TestCase {
 
 	public function test_resolve_method()
 	{
