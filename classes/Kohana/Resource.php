@@ -29,6 +29,23 @@ class Kohana_Resource {
 		)
 	);
 
+	public static $options_available = array(
+		'model',
+		'sluggable',
+		'singular',
+		'controller',
+		'path',
+		'field',
+		'only',
+		'except',
+		'with',
+		'format',
+		'formats',
+		'is_format_required',
+		'slug_regex',
+		'positive_integer_regex',
+	);
+
 	/**
 	 * All the created resources.
 	 * @var array
@@ -38,7 +55,7 @@ class Kohana_Resource {
 	/**
 	 * Set routes and nested resources based on the models
 	 *
-	 * @param string|arrau $model   the name of the resource or an array of names
+	 * @param string|arrau $model the name of the resource or an array of names
 	 * @param array $options array of options - see the usage description
 	 * @param string $parent the name of the parent route
 	 */
@@ -87,7 +104,7 @@ class Kohana_Resource {
 	}
 
 	/**
-	 * Generate an URL for the specified arguments.
+	 * Generate a URL for the specified arguments.
 	 * Arguments could be model objects, strings, arrays or booleans.
 	 * Model objects are resolved to strings and route params are set from them - slugs or primary keys.
 	 * Arrays are used as additional route params.
@@ -107,15 +124,79 @@ class Kohana_Resource {
 	{
 		$arguments = func_get_args();
 		$protocol = NULL;
-		$params = array();
-		$strings = array();
+		$params = $query = $strings = array();
+
+		foreach ($arguments as $i => $argument)
+		{
+			if (is_string($argument))
+			{
+				$strings []= $argument;
+				Resource::_set_key($params);
+				if (Inflector::singular($argument) == $argument AND ! isset($params['action']))
+				{
+					$params['action'] = 'show';
+				}
+			}
+			elseif (is_object($argument))
+			{
+				$strings []= Resource::_parse_object($argument, $params);
+			}
+			elseif (is_array($argument))
+			{
+				// only `action`, `format`, `id` and `parent_id` are counted as route params
+				$params = Arr::merge($params, array_filter(Arr::extract($argument, array('action', 'format', 'parent_id', 'id'))));
+
+				// If `protocol` key is supplied in an array argument it is assumed to be protocol
+				$protocol = Arr::get($argument, 'protocol', $protocol);
+
+				unset($argument['action'], $argument['format'], $argument['parent_id'], $argument['id'], $argument['protocol']);
+
+				// the rest of the keys are query parameters
+				$query = Arr::merge($query, $argument);
+			}
+			elseif (is_bool($argument))
+			{
+				$protocol = $argument;
+			}
+		}
+		$strings []= Arr::get($params, 'action', 'index');
+		$url = Route::url(implode('_', $strings), $params, $protocol);
+
+		if ($query)
+		{
+			$url .= URL::query($query, FALSE);
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Retrieves a Route for the specified arguments.
+	 * Arguments could be model objects or strings.
+	 * Model objects are resolved to strings.
+	 *
+	 * Usage:
+	 * 		Resource::url($user, 'images'); // Route matching /users/<id>/images
+	 *
+	 * 	If model objects are given as arguments their name is used in singular form.
+	 * 	If collection objects are given as arguments their name is used in plural form.
+	 *
+	 * 	The point is to generate a correct route name and find it by name
+	 *
+	 * @return Route
+	 */
+	public function route()
+	{
+		$arguments = func_get_args();
+		$params = $strings = array();
+
 		foreach ($arguments as $i => $argument)
 		{
 			if (is_string($argument))
 			{
 				$strings[] = $argument;
 				Resource::_set_key($params);
-				if (Inflector::singular($argument) == $argument)
+				if (Inflector::singular($argument) == $argument AND ! isset($params['action']))
 				{
 					$params['action'] = 'show';
 				}
@@ -126,59 +207,19 @@ class Kohana_Resource {
 			}
 			elseif (is_array($argument))
 			{
-				$params = Arr::merge($params, $argument);
+				if ($action = Arr::get($argument, 'action'))
+				{
+					$params['action'] = $action;
+				}
 			}
-			elseif (is_bool($argument) OR is_null($argument))
-			{
-				$protocol = $argument;
-			}
 		}
-		$protocol = Arr::get($params, 'protoctol', $protocol);
-		$strings[] = Arr::get($params, 'action', 'index');
-		return Route::url(implode('_', $strings), $params, $protocol);
-	}
 
-	/**
-	 * Set a key in the params and if it has been already set move the old one to the parent key
-	 *
-	 * @static
-	 * @param array &$params a reference to the params array on which to operate on
-	 * @param int $key     The key which to be set if provided
-	 */
-	protected static function _set_key(&$params, $key = NULL)
-	{
-		if (isset($params['id']))
+		if ( ! empty($params['action']))
 		{
-			$params['parent_id'] = $params['id'];
-			unset($params['id']);
+			$strings []= $params['action'];
 		}
-		if ($key)
-		{
-			$params['id'] = $key;
-		}
-		else
-		{
-			$params['action'] = 'index';
-		}
-	}
 
-	/**
-	 * Parse an object or a collection and returns the name of the model
-	 *
-	 * @static
-	 * @param  mixed $object a model object depending on the drivers; it could be Jam_Collection, Jam_Builder, Jam_Object, ORM or Database_Result
-	 * @param  array $params if the object is loaded it would set id in params to the key of the object
-	 * @return string
-	 */
-	protected static function _parse_object($object, &$params)
-	{
-		if ($object instanceof Jam_Model AND $object->loaded())
-		{
-			$key = Resource_Jam::is_sluggable($object) ? ($object->slug ?: $object->id()) : $object->id();
-			$params['action'] = 'show';
-			Resource::_set_key($params, $key);
-		}
-		return Inflector::plural($object->meta()->model());
+		return Route::get(implode('_', $strings));
 	}
 
 	/**
@@ -222,28 +263,74 @@ class Kohana_Resource {
 	}
 
 	/**
-	 * The name of the resource. It is used for identifying resources. It is required and must be unique.
+	 * Set a key in the params and if it has been already set move the old one to the parent key
+	 *
+	 * @static
+	 * @param array &$params a reference to the params array on which to operate on
+	 * @param int $key     The key which to be set if provided
+	 */
+	protected static function _set_key( & $params, $key = NULL)
+	{
+		if (isset($params['id']))
+		{
+			$params['parent_id'] = $params['id'];
+			unset($params['id']);
+		}
+
+		if ($key)
+		{
+			$params['id'] = $key;
+		}
+		else
+		{
+			$params['action'] = 'index';
+		}
+	}
+
+	/**
+	 * Parse an object or a collection and returns the name of the model
+	 *
+	 * @static
+	 * @param  mixed $object a model object depending on the drivers; it could be Jam_Collection, Jam_Builder, Jam_Object, ORM or Database_Result
+	 * @param  array $params if the object is loaded it would set id in params to the key of the object
+	 * @return string
+	 */
+	protected static function _parse_object($object, & $params)
+	{
+		if ($object instanceof Jam_Model AND $object->loaded())
+		{
+			$key = Resource::_is_model_sluggable($object)
+				? ($object->slug ?: $object->id())
+				: $object->id();
+			$params['action'] = 'show';
+			Resource::_set_key($params, $key);
+		}
+
+		return Inflector::plural($object->meta()->model());
+	}
+
+	/**
+	 * Checks if a model object is using the sluggable behavior
+	 *
+	 * @static
+	 * @param  mixed  $object Jam_Model
+	 * @return boolean TRUE if the object implements the sluggable behavior;
+	 * FALSE otherwise
+	 */
+	protected static function _is_model_sluggable($object)
+	{
+		return array_key_exists('sluggable', $object->meta()->behaviors()) AND $object->slug;
+	}
+
+	/**
+	 * The name of the resource. It is used for identifying resources.
+	 * It is required and must be unique.
+	 * If you use the same name the resource would be overwritten.
 	 * @var string
 	 */
 	protected $_name;
 
-	/**
-	 * The name of the model
-	 * @var string
-	 */
-	protected $_model;
-
-	/**
-	 * Defines if the resource is singular
-	 * @var boolean
-	 */
-	protected $_is_singular;
-
-	/**
-	 * Defines if the resource is sluggable
-	 * @var boolean
-	 */
-	protected $_is_sluggable;
+	protected $_options = array();
 
 	/**
 	 * The parent resource name
@@ -251,19 +338,11 @@ class Kohana_Resource {
 	 */
 	protected $_parent;
 
+	/**
+	 * The names of the routes for this resource
+	 * @var array
+	 */
 	protected $_routes = array();
-
-	/**
-	 * The path string used in urls when setting routes.
-	 * @var string
-	 */
-	protected $_path;
-
-	/**
-	 * The name of the controller for the resource
-	 * @var string
-	 */
-	protected $_controller;
 
 	protected $_child_options = array();
 
@@ -272,12 +351,6 @@ class Kohana_Resource {
 	 * @var array
 	 */
 	protected $_children = array();
-
-	protected $_format = 'html';
-
-	protected $_formats = array();
-
-	protected $_is_format_required = FALSE;
 
 	/**
 	 * Route params for the resource.
@@ -301,111 +374,158 @@ class Kohana_Resource {
 	{
 		$this->_name = $name;
 
-		$model = Arr::get($options, 'model', Inflector::singular($name));
+
+		$this->_options = Arr::merge(
+			(array) Kohana::$config->load('jam-resource'),
+			array_filter(Arr::extract($options, Resource::$options_available), function($value)
+			{
+				return $value !== NULL;
+			})
+		);
+
+		$this->_options['field'] = $this->option('field', $this->name());
+		
+		$model = $this->option('model', Inflector::singular($name));
 
 		if ($model !== FALSE)
 		{
 			if ( ! (bool) Jam::meta($model))
-				throw new Resource_Exception_Nomodel('The model :model does not exist', $model);
+				throw new Kohana_Exception('The model :model does not exist', array(':model' => $model));
 
-			$this->_model = $model;
+			$this->_options['model'] = $model;
 		}
 
-		$this->_is_singular = (bool) Arr::get($options, 'singular', Kohana::$config->load('jam-resource.singular'));
-
-		if ( ! $this->is_singular())
+		if ($this->option('singular'))
 		{
-			$this->_is_sluggable = (bool) Arr::get($options,'sluggable', Kohana::$config->load('jam-resource.sluggable'));
+			$this->_options['sluggable'] = FALSE;
 		}
 
-		$this->_path = Arr::get($options, 'path', $this->is_singular() ? Inflector::singular($name) : $name);
-		$path_base = basename($this->_path);
-		$this->_controller = Arr::get($options, 'controller', $this->is_singular() ? $path_base : Inflector::singular($path_base, 2));
-		$this->_format = Arr::get($options, 'format', Kohana::$config->load('jam-resource.format'));
-		$this->_formats = Arr::get($options, 'formats', array_keys(array_filter(Kohana::$config->load('jam-resource.formats'))));
-		$this->_is_format_required = Arr::get($options, 'is_format_required', (bool) Kohana::$config->load('jam-resource.is_format_required'));
+		$this->_options['path'] = $this->option('path', $this->option('singular') ?
+			Inflector::singular($name) :
+			$name
+		);
 
-		if ($only = Arr::get($options, 'only'))
+		$path_base = basename($this->option('path'));
+
+		$this->_options['controller'] = $this->option('controller', $this->option('singular') ?
+			$path_base :
+			Inflector::singular($path_base, 2)
+		);
+
+		$this->_options['formats'] = $this->option('formats', array_keys(array_filter(Kohana::$config->load('jam-resource.formats'))));
+
+		if ($only = $this->option('only'))
 		{
 			foreach (Resource::$actions_map as $actions_type => $actions_group)
 			{
 				if ($actions_group)
 				{
-					if ($actions_type != 'member' AND $this->is_singular())
+					if ($actions_type != 'member' AND $this->option('singular'))
 					{
 						$actions_type = 'member';
 					}
+
 					$this->_actions = Arr::merge($this->_actions, array(
-						$actions_type => array_filter(Arr::extract($actions_group, (array) $only))
+						$actions_type => array_filter(
+							Arr::extract($actions_group, (array) $only)
+						)
 					));
 				}
 			}
 		}
-		elseif ($except = Arr::get($options, 'except'))
+		elseif ($except = $this->option('except'))
 		{
 			foreach (Resource::$actions_map as $actions_type => $actions_group)
 			{
 				if ($actions_group)
 				{
-					$this->_actions[$actions_type] = array_filter(Arr::extract($actions_group, array_diff(array_keys($actions_group), (array) $except)));
+					$this->_actions[$actions_type] = array_filter(
+						Arr::extract($actions_group, array_diff(
+							array_keys($actions_group),
+							(array) $except
+						))
+					);
 				}
 			}
 		}
-		elseif ( ! array_key_exists('only', $options))
+		elseif ( ! array_key_exists('only', $this->_options))
 		{
 			$this->_actions = Resource::$actions_map;
 		}
 
-		$this->_add_actions( (array) Arr::get($options, 'with'));
+		$this->_add_actions( (array) $this->option('with'));
 
 		if ($parent)
 		{
 			$this->_parent = $parent;
-			$this->_name = $this->_parent->name().'_'.$this->_name;
+			$this->_name = $this->_parent->name().'_'.$this->name();
 			$this->_child_options = array();
 		}
 		else
 		{
-			unset(
-				$options['model'],
-				$options['sluggable'],
-				$options['singular'],
-				$options['controller'],
-				$options['path'],
-				$options['only'],
-				$options['except'],
-				$options['with'],
-				$options['format'],
-				$options['formats'],
-				$options['is_format_required']
-			);
+			foreach (Resource::$options_available as $option)
+			{
+				unset($options[$option]);
+			}
+
 			$this->_child_options = array_filter($options);
 		}
 
 		$this->_set_routes();
 	}
 
-	public function builder()
+	public function option($option = NULL, $default = NULL)
 	{
-		return Resource_Jam::builder($this);
+		if ($option === NULL)
+			return $this->_options;
+
+		return Arr::path($this->_options, $option, $default);
 	}
 
 	/**
-	 * Get the collection  object for the resource
+	 * Get the collection object for the resource
 	 * @return Jam_Collection
 	 */
 	public function collection()
 	{
-		return $this->builder()->select_all();
+		if (($parent = $this->parent()) AND ! $parent->option('singular'))
+		{
+			$parent_builder = Jam::all($parent->option('model'));
+
+			if ($parent->option('sluggable'))
+			{
+				$parent_builder = $parent_builder->where_slug($this->param('parent_id'));
+			}
+			else
+			{
+				$parent_builder = $parent_builder->where_key($this->param('parent_id'));
+			}
+
+			return $parent_builder->first_insist()->{$this->option('field')};
+		}
+
+		return Jam::all($this->option('model'));
 	}
 
 	/**
 	 * Get the model object for the resource.
+	 * If the resource has a parent resource the method should return the child object regarding the parent limitation.
 	 * @return mixed depending on the driver - Jam_Model or ORM
 	 */
 	public function object()
 	{
-		return Resource_Jam::object($this);
+		$builder = $this->collection();
+		
+		if ($this->option('sluggable'))
+		{
+			$builder = $builder->where_slug($this->param('id'));
+		}
+		else
+		{
+			$builder->where_key( (int) $this->param('id'));
+		}
+
+		return $builder->first_insist();
 	}
 
 	/**
@@ -434,41 +554,21 @@ class Kohana_Resource {
 	public function param($param = NULL)
 	{
 		if ($param === NULL)
-		{
 			return $this->_params;
-		}
-		elseif (is_array($param))
+
+		if (is_array($param))
 		{
 			$this->_params = Arr::merge($this->_params, $param);
 			return $this;
 		}
+
 		if ( ! isset($this->_params[$param]))
-		{
-			throw new Resource_Exception('The :param param is missing from the :resource resource!', array(
-				':resource' => $this->_name,
+			throw new Kohana_Exception('The :param param is missing from the :resource resource!', array(
+				':resource' => $this->name(),
 				':param' => $param
 			));
-		}
+
 		return Arr::get($this->_params, $param);
-	}
-
-	/**
-	 * Check if the resource should use slugs instead of primary keys.
-	 * @return boolean
-	 */
-	public function is_sluggable()
-	{
-		return $this->_is_sluggable;
-	}
-
-	public function is_multiple()
-	{
-		return ! $this->is_singular();
-	}
-
-	public function is_singular()
-	{
-		return $this->_is_singular;
 	}
 
 	public function actions()
@@ -484,9 +584,8 @@ class Kohana_Resource {
 	public function children($child_name = NULL)
 	{
 		if ($child_name)
-		{
 			return (bool) Arr::get($this->_children, $child_name);
-		}
+
 		return $this->_children;
 	}
 
@@ -500,39 +599,12 @@ class Kohana_Resource {
 	}
 
 	/**
-	 * Get the resource model name
-	 * @return string
-	 */
-	public function model()
-	{
-		return $this->_model;
-	}
-
-	/**
 	 * Get the parent resource
 	 * @return Resource
 	 */
 	public function parent()
 	{
 		return $this->_parent;
-	}
-
-	/**
-	 * Get the resource path string
-	 * @return string
-	 */
-	public function path()
-	{
-		return $this->_path;
-	}
-
-	/**
-	 * Get the resource controller name
-	 * @return string
-	 */
-	public function controller()
-	{
-		return $this->_controller;
 	}
 
 	/**
@@ -596,10 +668,16 @@ class Kohana_Resource {
 	 */
 	protected function _set_child($child_name, $child_options)
 	{
-		$child_options['path'] = $this->path()
+		$child_options['path'] = $this->option('path')
 			.'/'
-			.($this->is_multiple() ? '<parent_id>/' : '')
-			.Arr::get($child_options, 'path', Arr::get($child_options, 'singular') ? Inflector::singular($child_name) : $child_name);
+			.( ! $this->option('singular') ? '<parent_id>/' : '')
+			.Arr::get(
+				$child_options,
+				'path',
+				Arr::get($child_options, 'singular') ?
+				 Inflector::singular($child_name) :
+				 $child_name
+			);
 
 		$child_resource = Resource::set($child_name, $child_options, $this);
 
@@ -609,8 +687,8 @@ class Kohana_Resource {
 	/**
 	 * Set the children resources and the routes for the resource depending on the options and the type provided.
 	 * @return $this
-	 * @uses Resource_Routes for the routes
-	 * @uses $this->_set_child for the child resources
+	 * @uses $this->_set_route() for the routes
+	 * @uses $this->_set_child() for the child resources
 	 */
 	protected function _set_routes()
 	{
@@ -623,9 +701,14 @@ class Kohana_Resource {
 		{
 			foreach ($actions as $action => $method)
 			{
-				if ( ! ($this->is_singular() AND $action == 'index'))
+				if ( ! ($this->option('singular') AND $action == 'index'))
 				{
-					$route_name = $this->_set_route($actions_group, $action, $method);
+					$route_name = $this->_set_route(
+						$actions_group,
+						$action,
+						$method
+					);
+
 					$this->_routes[] = $route_name;
 				}
 			}
@@ -639,7 +722,7 @@ class Kohana_Resource {
 	 * @param string $type 'member' or 'collection'
 	 * @param string $action
 	 * @param string $method the HTTP method for this route
-	 * @return Route the created Resource_Route object
+	 * @return string the name of the created route
 	 */
 	protected function _set_route($type, $action, $method)
 	{
@@ -647,59 +730,71 @@ class Kohana_Resource {
 		$format_string = $id_string = $action_string = '';
 		$route_regex = array();
 		$route_defaults = array(
-			'controller'  => $this->controller(),
+			'controller'  => $this->option('controller'),
 			'action'      => $action
 		);
 
 		if (($parent = $this->parent()))
 		{
-			if ($parent->is_multiple())
+			if ( ! $parent->option('singular'))
 			{
-				if ($parent->is_sluggable())
+				if ($parent->option('sluggable'))
 				{
-					$route_regex['parent_id'] = Kohana::$config->load('jam-resource.slug_regex');
+					$route_regex['parent_id'] = $parent->option('slug_regex');
 				}
 				else
 				{
-					$route_regex['parent_id'] = Kohana::$config->load('jam-resource.positive_integer_regex');
+					$route_regex['parent_id'] = $parent->option('positive_integer_regex');
 				}
 			}
 		}
 
-		if ($this->is_multiple() AND $type == 'member')
+		if ( ! $this->option('singular') AND $type == 'member')
 		{
 			$id_string = '/<id>';
-			if ($this->is_sluggable())
+
+			if ($this->option('sluggable'))
 			{
-				$route_regex['id'] = Kohana::$config->load('jam-resource.slug_regex');
+				$route_regex['id'] = $this->option('slug_regex');
 			}
 			else
 			{
-				$route_regex['id'] = Kohana::$config->load('jam-resource.positive_integer_regex');
+				$route_regex['id'] = $this->option('positive_integer_regex');
 			}
 		}
 
-		if ( ! in_array($action, array('index', 'create', 'show', 'update', 'destroy')))
+		if ( ! in_array($action, array(
+			'index',
+			'show',
+		)))
 		{
 			$action_string = '/'.$action;
 		}
 
-		if ($this->_format !== FALSE)
+		if ($this->option('format') !== FALSE)
 		{
-			$route_regex['format'] = count($this->_formats) > 1 ? '('.implode('|', $this->_formats).')' : Arr::get($this->_formats, 0, '');
-			$route_defaults['format'] = $this->_format;
+			$route_regex['format'] = count($this->option('formats')) > 1 ?
+			 '('.implode('|', $this->option('formats')).')' :
+			  $this->option('formats.0', '');
+
+			$route_defaults['format'] = $this->option('format');
 			$format_string = '.<format>';
 
-			if ( ! $this->_is_format_required)
+			if ( ! $this->option('is_format_required'))
 			{
 				$format_string = '('.$format_string.')';
 			}
 		}
 
-		Route::set($route_name, $this->path().$id_string.$action_string.$format_string, $route_regex, array(
-			'resource' => $this->name(),
-			'method' => $method
-		))
+		Route::set(
+			$route_name,
+			$this->option('path').$id_string.$action_string.$format_string,
+			$route_regex,
+			array(
+				'resource' => $this->name(),
+				'method' => $method
+			)
+		)
 			->defaults($route_defaults);
 
 		return $route_name;

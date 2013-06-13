@@ -1,1 +1,1 @@
-# Http resource
+# Jam Resource
