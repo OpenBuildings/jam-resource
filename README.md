@@ -195,7 +195,7 @@ From there you could access the specified user model with:
 `$this->request->resource()->object()`
 
 There is no need to check if it is loaded. If there is no user model with the specified id
-`Jam_Exception_NotFound` would be thrown.
+`Jam_Exception_Notfound` would be thrown.
 
 
 Generating URLs
