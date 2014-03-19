@@ -131,11 +131,11 @@ class Kohana_Resource {
 			if (is_string($argument))
 			{
 				$strings []= $argument;
-				Resource::_set_key($params);
 				if (Inflector::singular($argument) == $argument AND ! isset($params['action']))
 				{
 					$params['action'] = 'show';
 				}
+				Resource::_set_key($params);
 			}
 			elseif (is_object($argument))
 			{
@@ -145,6 +145,11 @@ class Kohana_Resource {
 			{
 				// only `action`, `format`, `id` and `parent_id` are counted as route params
 				$params = Arr::merge($params, array_filter(Arr::extract($argument, array('action', 'format', 'parent_id', 'id'))));
+
+				if (Arr::get($params, 'format') === TRUE AND Request::initial())
+				{
+					$params['format'] = Request::initial()->param('format');
+				}
 
 				// If `protocol` key is supplied in an array argument it is assumed to be protocol
 				$protocol = Arr::get($argument, 'protocol', $protocol);
@@ -275,13 +280,14 @@ class Kohana_Resource {
 		{
 			$params['parent_id'] = $params['id'];
 			unset($params['id']);
+			unset($params['action']);
 		}
 
 		if ($key)
 		{
 			$params['id'] = $key;
 		}
-		else
+		elseif ( ! isset($params['action']))
 		{
 			$params['action'] = 'index';
 		}
@@ -302,7 +308,11 @@ class Kohana_Resource {
 			$key = Resource::_is_model_sluggable($object)
 				? ($object->slug ?: $object->id())
 				: $object->id();
-			$params['action'] = 'show';
+
+			if ( ! isset($params['action']))
+			{
+				$params['action'] = 'show';
+			}
 			Resource::_set_key($params, $key);
 		}
 
@@ -488,23 +498,27 @@ class Kohana_Resource {
 	 */
 	public function collection()
 	{
-		if (($parent = $this->parent()) AND ! $parent->option('singular'))
+		if ( ! ($parent = $this->parent()) OR $parent->option('singular'))
+			return Jam::all($this->option('model'));
+
+		$parent_builder = Jam::all($parent->option('model'));
+
+		if ($parent->option('sluggable'))
 		{
-			$parent_builder = Jam::all($parent->option('model'));
-
-			if ($parent->option('sluggable'))
-			{
-				$parent_builder = $parent_builder->where_slug($this->param('parent_id'));
-			}
-			else
-			{
-				$parent_builder = $parent_builder->where_key($this->param('parent_id'));
-			}
-
-			return $parent_builder->first_insist()->{$this->option('field')};
+			$slug = $this->param('parent_id');
+			$parent = $parent_builder
+				->where_slug($slug)
+				->first_insist();
+			$parent->matches_slug_insist($slug);
+		}
+		else
+		{
+			$parent = $parent_builder
+				->where_key( (int) $this->param('parent_id'))
+				->first_insist();
 		}
 
-		return Jam::all($this->option('model'));
+		return $parent->{$this->option('field')};
 	}
 
 	/**
@@ -518,14 +532,13 @@ class Kohana_Resource {
 		
 		if ($this->option('sluggable'))
 		{
-			$builder = $builder->where_slug($this->param('id'));
-		}
-		else
-		{
-			$builder->where_key( (int) $this->param('id'));
+			$slug = $this->param('id');
+			$object = $builder->where_slug($slug)->first_insist();
+			$object->matches_slug_insist($slug);
+			return $object;
 		}
 
-		return $builder->first_insist();
+		return $builder->where_key( (int) $this->param('id'))->first_insist();
 	}
 
 	/**
@@ -668,8 +681,7 @@ class Kohana_Resource {
 	 */
 	protected function _set_child($child_name, $child_options)
 	{
-		$child_options['path'] = $this->option('path')
-			.'/'
+		$child_options['path'] = ($this->option('path') ? $this->option('path').'/' : '')
 			.( ! $this->option('singular') ? '<parent_id>/' : '')
 			.Arr::get(
 				$child_options,
@@ -751,7 +763,7 @@ class Kohana_Resource {
 
 		if ( ! $this->option('singular') AND $type == 'member')
 		{
-			$id_string = '/<id>';
+			$id_string = ($this->option('path') ? '/' : '').'<id>';
 
 			if ($this->option('sluggable'))
 			{
