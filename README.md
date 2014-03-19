@@ -241,8 +241,11 @@ Singular resources
 
 **TODO: explain what singular resources are and how they should be used**
 
-Jam driver
+Sluggable
 -------
+
+You could use the `sluggable` (`TRUE`|`FALSE`) option and the `slug_regex` to set up
+the routes to use slugs instead of primary keys.
 
 **TODO: explain sluggable implementation here**
 
