@@ -1,6 +1,5 @@
 {
     "name": "openbuildings/jam-resource",
-    "version": "0.3.0",
     "description": "Kohana resources for Jam ORM which connect routes, controllers and models",
     "type": "kohana-module",
     "homepage": "https://github.com/openbuildings/jam-resource",
