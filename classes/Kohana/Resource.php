@@ -316,6 +316,12 @@ class Kohana_Resource {
 			Resource::_set_key($params, $key);
 		}
 
+		// Support for STI
+		if ($object->meta()->polymorphic_key())
+		{
+			return $object->meta()->table();
+		}
+
 		return Inflector::plural($object->meta()->model());
 	}
 
