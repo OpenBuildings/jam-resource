@@ -1,4 +1,4 @@
-Resource Jam module for Kohana 3.2
+Resource Jam module for Kohana 3.3
 ==================================
 
 Resources act as a bridge between routes, models and requests.
